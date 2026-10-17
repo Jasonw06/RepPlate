@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>RepPlate</title>
   <meta name="description" content="Free workout guide with exercise demos, rest timer and a barcode-scanning calorie counter.">
-  <meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
@@ -13,12 +13,15 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="RepPlate">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
-    <linearGradient id="ring-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#00C0E8"/><stop offset=".55" stop-color="#0088FF"/><stop offset="1" stop-color="#6155F5"/></linearGradient>
+    <linearGradient id="ring-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF2D55"/><stop offset="1" stop-color="#FF7A9A"/></linearGradient>
+    <linearGradient id="pr-k" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF2D55"/><stop offset="1" stop-color="#FF7A9A"/></linearGradient>
+    <linearGradient id="pr-p" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#30D158"/><stop offset="1" stop-color="#B4FF5A"/></linearGradient>
+    <linearGradient id="pr-w" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#00C0E8"/><stop offset="1" stop-color="#6FE6FF"/></linearGradient>
   </defs></svg>
   <div class="app"><main id="view" tabindex="-1"></main></div>
   <nav class="tabbar" id="tabbar" aria-label="Main"></nav>

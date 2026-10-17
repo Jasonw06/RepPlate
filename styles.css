@@ -1392,3 +1392,187 @@ select.input {
 .wk-bars i { min-height: 0; }
 svg.wchart, .wchart svg { overflow: visible; }
 .player #g-ctl { margin-top: auto; }
+
+/* ---------- TDEE & goal calculator: each number named and explained ---------- */
+.calc-out { background: var(--bg); border-radius: 18px; padding: 4px 14px 14px; gap: 10px; }
+.tdee-steps { display: grid; }
+.tdee-row { display: grid; grid-template-columns: 1fr auto; gap: 2px 14px; align-items: center; padding: 11px 0; border-bottom: var(--hair) solid var(--sep); }
+.tdee-row b { font: 600 15px/1.3 var(--body); }
+.tdee-row p { font-size: 13px; line-height: 1.35; color: var(--muted); margin-top: 2px; }
+.tdee-row strong { font: 600 17px/1 var(--rounded); white-space: nowrap; }
+.tdee-row.mult b, .tdee-row.adj strong { color: var(--muted); }
+.tdee-row.total strong { color: var(--accent); }
+.tdee-row.target { border-bottom: 0; }
+.tdee-row.target b { font-size: 17px; }
+.tdee-row.target strong { font: 700 24px/1 var(--rounded); }
+.tdee-macros { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 15px; }
+.tdee-macros b { font: 600 15px var(--rounded); }
+.tdee-line { margin-top: -4px; }
+
+/* =====================================================================================================
+   PULSE — style A. The dark, iPhone Fitness-like look: black ground, #1C1C1E cards with big corners,
+   activity rings with gradient arcs on tinted tracks, heavy rounded numbers and colour-coded labels.
+   Calories = pink, protein = green, water = cyan, carbs = orange, fat = purple, workouts = orange.
+   ===================================================================================================== */
+@font-face { font-family: "Nunito RP"; src: url("fonts/nunito-latin-wght-normal.woff2") format("woff2"); font-weight: 200 1000; font-style: normal; font-display: swap; }
+:root {
+  --rounded: ui-rounded, "SF Pro Rounded", "Nunito RP", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --kcal: #FF2D55; --protein: #28B84E; --carbs: #FF8D28; --fat: #B23ED1; --water: #00A8D6; --workout: #F07A1A; --weightc: #A63FD6; --fastc: #6155F5;
+  --cta: #111114; --cta-ink: #FFFFFF; --r: 26px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --kcal: #FF375F; --protein: #30D158; --carbs: #FF9F0A; --fat: #BF5AF2; --water: #3CD3FE; --workout: #FF9230; --weightc: #DA8FFF; --fastc: #8A97FF;
+    --cta: #FFFFFF; --cta-ink: #000000;
+  }
+}
+:root[data-theme="dark"] {
+  --kcal: #FF375F; --protein: #30D158; --carbs: #FF9F0A; --fat: #BF5AF2; --water: #3CD3FE; --workout: #FF9230; --weightc: #DA8FFF; --fastc: #8A97FF;
+  --cta: #FFFFFF; --cta-ink: #000000;
+}
+
+/* type and surfaces */
+.h-display { font-weight: 800; }
+.panel, .meal-card, .r-items, .routine, .ed-item, .stats > div, .ex-list { border-radius: var(--r); }
+.btn.primary { background: var(--cta); color: var(--cta-ink); }
+.btn.primary .i { color: inherit; }
+.mc-val b, .stats dd, .eq dd, .e-kcal, .meal-head span, .plan-kcal, .rv-kcal, .huge { font-weight: 800; }
+.top .streak .i { color: var(--orange); width: 16px; height: 16px; }
+.top .streak b { font: 800 17px/1 var(--rounded); }
+
+/* Today: the rings card */
+.pulse-energy { display: grid; gap: 12px; min-width: 0; }
+.pulse-hero { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 14px 18px; padding: 20px; }
+.pulse-rings { width: clamp(112px, 37vw, 168px); aspect-ratio: 1; }
+.pulse-svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.pr-track { stroke-opacity: .2; }
+.pr-track.pr-k { stroke: var(--kcal); } .pr-track.pr-p { stroke: var(--protein); } .pr-track.pr-w { stroke: var(--water); }
+.pr-arc { transition: stroke-dashoffset .8s cubic-bezier(.32, .72, 0, 1); }
+.pr-arc.draw { animation: pr-draw 1.1s cubic-bezier(.32, .72, 0, 1) both; }
+.pr-arc.pr-p.draw { animation-delay: .08s; } .pr-arc.pr-w.draw { animation-delay: .16s; }
+@keyframes pr-draw { from { stroke-dashoffset: var(--c); } }
+.pulse-legend { display: grid; gap: 10px; min-width: 0; }
+.pl { display: grid; gap: 1px; min-width: 0; }
+.pl-k { --c: var(--kcal); } .pl-p { --c: var(--protein); } .pl-w { --c: var(--water); }
+.pl-lab { font: 600 13px/1.2 var(--body); color: var(--c); }
+.pl-val { font: 800 20px/1.1 var(--rounded); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pl-val small { font-size: 13px; font-weight: 700; color: var(--muted); }
+.pl-big { font-size: clamp(26px, 8.4vw, 34px); line-height: 1.05; }
+.pl-big small { font-size: 15px; }
+.pl-sub { font-size: 12.5px; color: var(--muted); line-height: 1.3; }
+.pl-sub .i { width: 12px; height: 12px; color: var(--orange); vertical-align: -1px; }
+.pulse-ideas {
+  grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; min-height: 44px; margin: 0 -4px -6px; padding: 0 4px;
+  border: 0; border-top: var(--hair) solid var(--sep); background: none; color: var(--accent); font: 500 15px/1.2 var(--body); text-align: left;
+}
+.pulse-ideas span { flex: 1; min-width: 0; }
+.pulse-ideas .i { width: 18px; height: 18px; flex: none; }
+.pulse-ideas .i:last-child { width: 14px; height: 14px; color: var(--label-3); }
+.pulse-actions { display: flex; gap: 10px; }
+.log-btn { flex: 1; min-height: 52px; font-size: 17px; font-weight: 700; }
+.round-btn {
+  width: 52px; height: 52px; flex: none; border: 0; border-radius: 50%; background: var(--surface); color: var(--ink);
+  display: grid; place-items: center; transition: transform .4s var(--spring), opacity .2s;
+}
+.round-btn .i { width: 22px; height: 22px; }
+.round-btn:active { transform: scale(.92); opacity: .7; transition-duration: .1s; }
+
+/* carbs and fat tiles */
+.macro-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; min-width: 0; }
+.mtile { background: var(--surface); border-radius: 22px; padding: 14px 16px; min-width: 0; }
+.mtile.m-c { --c: var(--carbs); } .mtile.m-f { --c: var(--fat); }
+.mt-head { display: flex; justify-content: space-between; gap: 6px; font: 600 13px/1.2 var(--body); }
+.mt-head span:first-child { color: var(--c); }
+.mt-head span:last-child { color: var(--muted); }
+.mt-val { font: 800 22px/1.2 var(--rounded); margin-top: 4px; }
+.mt-val small { font-size: 14px; color: var(--muted); }
+.mtile .mbar { height: 6px; margin-top: 8px; background: color-mix(in srgb, var(--c) 22%, transparent); }
+.mtile .mbar i { background: var(--c); }
+
+/* workout card with a warm glow */
+.pulse-workout { padding: 18px; gap: 12px; background: radial-gradient(120% 140% at 100% 0%, color-mix(in srgb, var(--workout) 24%, var(--surface)) 0%, var(--surface) 58%); }
+.pulse-workout .wk-row { gap: 14px; }
+.pulse-workout .wk-text { gap: 1px; }
+.pw-lab { display: inline-flex; align-items: center; gap: 4px; font: 600 13px/1.3 var(--body); color: var(--workout); }
+.pw-lab .i { width: 14px; height: 14px; }
+.wk-row.done .pw-lab { color: var(--green); }
+.pulse-workout .wk-text strong { font: 800 20px/1.2 var(--display); text-transform: none; }
+.pulse-workout .wk-text .muted { font-size: 15px; }
+.pulse-workout .play { width: 52px; height: 52px; border-radius: 50%; background: var(--workout); color: #000; box-shadow: none; flex: none; }
+.pulse-workout .play .i { width: 20px; height: 20px; margin-left: 2px; }
+.pw-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; padding-top: 10px; border-top: var(--hair) solid var(--sep); font-size: 13px; }
+.pw-links { display: flex; gap: 16px; }
+.pw-foot .l-long { display: none; } .pw-foot .l-short { display: inline; }
+.pw-links .link { font-size: 15px; padding: 10px 0; min-height: 0; background: none; border: 0; }
+
+/* small tiles: colour labels and heavy numbers, weight trend line */
+.mini-grid { gap: 10px; }
+.mini-card { border-radius: 22px; }
+.mini-card .mc-val b { font: 800 26px/1.1 var(--rounded); }
+.mini-card[aria-label="Water"] { --cat: var(--water); }
+.mini-card[aria-label="Weight"] { --cat: var(--weightc); }
+.mini-card[aria-label="Activity"] { --cat: var(--workout); }
+.mini-card[aria-label="Fasting"] { --cat: var(--fastc); }
+.glasses i { background: color-mix(in srgb, var(--water) 22%, transparent); }
+.glasses i.full { background: var(--water); }
+.spark { width: 100%; height: 26px; display: block; margin: 2px 0 -2px; }
+.spark polyline { stroke: var(--weightc); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+/* last 7 days in calorie pink */
+.week .wk-bar { fill: var(--kcal); opacity: .35; }
+.week .wk-bar.today { opacity: 1; }
+
+/* the older single ring (fasting, rest and interval timers) in the same style */
+.ring-track { stroke: color-mix(in srgb, var(--kcal) 20%, transparent); }
+.fast-ring .ring-track { stroke: color-mix(in srgb, var(--fastc) 22%, transparent); }
+
+/* ---------- phones: Today in one column, in this order ---------- */
+@media (max-width: 959px) {
+  .today-cols, .today-a, .today-b { display: contents; }
+  .pulse-energy { order: 1; } .macro-tiles { order: 2; } .pulse-workout { order: 3; } #view > .mini-grid, .today-b > .mini-grid { order: 4; }
+  .today-b > .panel[aria-label="Your usuals"] { order: 5; } .today-b > .panel[aria-label="Habits"] { order: 6; } .today-a > .week { order: 7; }
+  #view > .notice:last-child { order: 8; }
+}
+@media (max-width: 359px) {
+  .pulse-hero { gap: 12px 14px; padding: 16px; }
+  .pl-val { font-size: 18px; }
+  .round-btn { width: 48px; height: 48px; }
+  .log-btn { min-height: 48px; }
+}
+
+/* ---------- tablets ---------- */
+@media (min-width: 700px) {
+  .app { max-width: 760px; padding-left: max(28px, env(safe-area-inset-left, 0px)); padding-right: max(28px, env(safe-area-inset-right, 0px)); }
+  .mini-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .pulse-rings { width: 220px; }
+  .pulse-hero { padding: 26px; gap: 16px 36px; }
+  .pulse-legend { gap: 14px; }
+  .pl-lab { font-size: 15px; }
+  .pl-val { font-size: 26px; }
+  .pl-val.pl-big { font-size: 46px; }
+  .pl-sub { font-size: 14px; }
+  .pw-foot .l-long { display: inline; } .pw-foot .l-short { display: none; }
+  .tabbar-inner { max-width: 560px; }
+}
+/* tablet portrait: one wide column, so centre the rings and numbers as a pair */
+@media (min-width: 700px) and (max-width: 959px) {
+  .pulse-hero { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 52px; }
+  .pulse-rings { justify-self: end; width: 236px; }
+}
+@media (min-width: 960px) {
+  body[data-page="today"] .app { max-width: 1120px; }
+  .today-cols { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  .today-a, .today-b { display: grid; gap: 16px; min-width: 0; }
+  .today-b > .mini-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pulse-rings { width: 220px; }
+  .pl-val.pl-big { font-size: 44px; }
+}
+
+/* charts in category colours: body = purple, training = orange */
+.wc-area { fill: var(--weightc); opacity: .16; }
+.wc-line { stroke: var(--weightc); }
+.wc-end { fill: var(--weightc); }
+#progress .wc-area { fill: var(--workout); } #progress .wc-line { stroke: var(--workout); } #progress .wc-end { fill: var(--workout); }
+.wk-bars i { background: color-mix(in srgb, var(--workout) 40%, var(--fill)); }
+.wk-bars i.now { background: var(--workout); }
+.wc-grid { stroke: var(--sep); stroke-width: .6; }

@@ -1,5 +1,5 @@
 /* RepPlate service worker: keeps the app working offline. Bump VERSION when you change files. */
-const VERSION = 'repplate-v14';
+const VERSION = 'repplate-v15';
 const IMG_CACHE = 'repplate-exercise-images';
 const PRECACHE = [
  "./",
@@ -10,6 +10,7 @@ const PRECACHE = [
  "data/exercises.json",
  "data/foods.json",
  "vendor/zxing.min.js",
+ "fonts/nunito-latin-wght-normal.woff2",
  "fonts/archivo-latin-wght-normal.woff2",
  "fonts/big-shoulders-display-latin-600-normal.woff2",
  "fonts/big-shoulders-display-latin-800-normal.woff2",

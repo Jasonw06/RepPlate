@@ -58,6 +58,8 @@ const I = {
   down: svg('<path d="M12 5v14M6 13l6 6 6-6"/>'),
   video: svg('<rect x="3" y="6" width="13" height="12" rx="2"/><path d="M16 10.5l5-3v9l-5-3"/>'),
   bolt: svg('<path d="M13 3L5 14h6l-1 7 8-11h-6z"/>'),
+  flame: svg('<path d="M12 2c.5 3.5-2.5 5.3-4.2 7.6A7 7 0 0 0 12 22a7 7 0 0 0 7-7c0-2.6-1.2-4.6-2.6-6-.3 1.6-1.2 2.7-2.4 3.2C14.6 8.6 13.8 4.6 12 2Z"/>', 'fill'),
+  playF: svg('<path d="M8 5.5v13l10.5-6.5z"/>', 'fill'),
   pen: svg('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>'),
   download: svg('<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>'),
   upload: svg('<path d="M12 16V5M7 10l5-5 5 5M5 20h14"/>'),
@@ -133,13 +135,14 @@ function starterRoutines() {
 function defaults() {
   return {
     v: 1,
-    settings: { kcal: 2000, protein: 130, carbs: 220, fat: 65, energy: 'kcal', weight: 'kg', rest: 60, region: 'world', theme: 'system', sound: true, goalsSet: false, installDismissed: false, profile: {}, guided: true, coach: true, tempo: 'normal', voiceURI: '', aiKey: '', aiModels: [], voiceBasic: false, waterGoal: 8, rate: null, summarySeen: '', quickKit: 'none', diet: { avoid: [], style: 'all', other: '', asked: false } },
+    settings: { kcal: 2000, protein: 130, carbs: 220, fat: 65, energy: 'kcal', weight: 'kg', rest: 60, region: 'world', theme: 'dark', themeV: 2, sound: true, goalsSet: false, installDismissed: false, profile: {}, guided: true, coach: true, tempo: 'normal', voiceURI: '', aiKey: '', aiModels: [], voiceBasic: false, waterGoal: 8, rate: null, summarySeen: '', quickKit: 'none', diet: { avoid: [], style: 'all', other: '', asked: false } },
     log: {}, foods: {}, routines: starterRoutines(), workouts: [], lastWeights: {}, videos: {}, meals: [], weights: [], water: {}, schedule: {}, week: null, active: null,
   };
 }
 function migrate(s) {
   const d = defaults();
   if (!s || typeof s !== 'object') return d;
+  const oldLook = !s.settings || s.settings.themeV !== 2;
   s.settings = Object.assign(d.settings, s.settings || {});
   for (const k of ['log', 'foods', 'lastWeights', 'videos']) if (!s[k] || typeof s[k] !== 'object') s[k] = d[k];
   if (!Array.isArray(s.routines)) s.routines = d.routines;
@@ -149,6 +152,7 @@ function migrate(s) {
   for (const k of ['water', 'schedule']) if (!s[k] || typeof s[k] !== 'object') s[k] = {};
   if (s.week === undefined) s.week = null;
   if (s.active === undefined) s.active = null;
+  if (oldLook) { if (s.settings.theme === 'system') s.settings.theme = 'dark'; s.settings.themeV = 2; }
   s.v = 1;
   return s;
 }
@@ -543,8 +547,10 @@ function render(name, arg) {
     case 'strength': html = viewStrength(); break;
     default: name = 'today'; html = viewToday();
   }
+  if (name !== 'today') drawRings = true;
   v.innerHTML = html;
   document.body.classList.toggle('modal-page', name === 'edit');
+  document.body.dataset.page = name;
   const tab = { plan: 'food', progress: 'me', summary: 'me', programs: 'train', strength: 'train', today: 'today', food: 'food', train: 'train', exercises: 'train', ex: 'train', routine: 'train', edit: 'train', me: 'me' }[name] || 'today';
   $$('.tabbar a').forEach(a => { const on = a.dataset.tab === tab; a.classList.toggle('on', on); if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
   if (name === 'exercises') renderLibResults();
@@ -3142,7 +3148,7 @@ function coachContext() {
   return [
     `Today: ${longDate(k)}. Units: ${st.energy === 'kJ' ? 'kJ (show kcal too)' : 'kcal'}, ${wUnit()}.`,
     `Person: ${P.sex === 'f' ? 'female' : P.sex === 'm' ? 'male' : 'sex not given'}${P.age ? `, ${P.age} years` : ''}${P.height ? `, ${P.height} cm` : ''}${tr ? `, weight trend ${n1(tr.trend)} kg (${tr.week != null ? `${tr.week > 0 ? '+' : ''}${n1(tr.week)} kg this week` : 'not enough weigh-ins for a weekly change'})` : ', no weigh-ins yet'}.`,
-    `Goals: ${st.kcal} kcal a day, protein ${st.protein} g, carbs ${st.carbs} g, fat ${st.fat} g.${sg.ready ? ` From their logs they burn about ${Math.round(sg.tdee)} kcal a day.` : ''}`,
+    `Goals: ${st.kcal} kcal a day, protein ${st.protein} g, carbs ${st.carbs} g, fat ${st.fat} g.${energyNeeds()?.tdee ? ` Formula estimate: BMR about ${Math.round(energyNeeds().bmr)} kcal, TDEE (maintenance) about ${Math.round(energyNeeds().tdee)} kcal.` : ''}${sg.ready ? ` From their logs their real TDEE is about ${Math.round(sg.tdee)} kcal a day.` : ''}`,
     `Food needs: ${dietActive() ? dietSummary() : 'none set'}.`,
     `Today so far: ${Math.round(t.kcal)} kcal, protein ${Math.round(t.p)} g. Burned through exercise today: ${Math.round(burnedOn(k).total)} kcal.`,
     `Last 7 days: logged on ${days.length} days${days.length ? `, average ${avg('kcal')} kcal and ${avg('p')} g protein` : ''}. Foods they log most: ${top || 'none yet'}.`,
@@ -3860,6 +3866,7 @@ function openEatNow(ctx) {
       <div class="chips" id="en-prefs">${[['quick', 'No cooking'], ['budget', 'Budget'], ['protein', 'High protein'], ['meatfree', 'Meat-free'], ['takeaway', 'Takeaway']].map(([k, l]) => `<button type="button" class="chip" data-k="pref" data-v="${k}">${l}</button>`).join('')}</div></div>
     ${aiKey() ? `<label class="field"><span>What do you have or feel like? (optional)</span><input class="input" id="en-have" maxlength="120" placeholder="e.g. chicken, rice and some veg"></label>` : ''}
     <div id="en-out"></div>
+    <button type="button" class="link en-plan" data-k="plan">See a full day of meal ideas</button>
     <div class="sheet-foot"><button type="button" class="btn primary xl grow" id="en-go">${I.utensils} Suggest meals</button></div>`);
   const out = el.querySelector('#en-out'), goBtn = el.querySelector('#en-go');
   let found = [];
@@ -3877,6 +3884,7 @@ function openEatNow(ctx) {
     const b = e.target.closest('[data-k]'); if (!b) return;
     if (b.dataset.k === 'pref') { const v = b.dataset.v; prefs.has(v) ? prefs.delete(v) : prefs.add(v); b.classList.toggle('on', prefs.has(v)); return; }
     if (b.dataset.k === 'pick') { const sg = found[+b.dataset.i]; if (sg) openAiReview(sg.items, ctx, { source: 'idea', note: sg.title }); return; }
+    if (b.dataset.k === 'plan') { closeAll(() => { location.hash = '#/plan'; }); return; }
   });
   goBtn.addEventListener('click', async () => {
     const aim = left > 150 ? target : 150;
@@ -4145,7 +4153,7 @@ function viewProgress() {
     <div class="pref"><span class="pref-label">I want to</span><div class="seg wrap4">${[[-0.5, 'Lose ½ kg a week', 'Lose ½ kg/wk'], [-0.25, 'Lose ¼ kg a week', 'Lose ¼ kg/wk'], [0, 'Stay the same', 'Stay the same'], [0.25, 'Gain ¼ kg a week', 'Gain ¼ kg/wk']].map(([v, l, s]) => `<button type="button" class="${Number(rate) === v ? 'on' : ''}" data-act="pref" data-k="rate" data-v="${v}">${lbl(l, s)}</button>`).join('')}</div></div>
     ${sg.ready ? (() => {
       const diff = sg.suggested - st.kcal;
-      return `<p>From your last ${sg.days} days of food logs and ${sg.weighins} weigh-ins, you burn about <b>${fmtE(sg.tdee)} ${eUnit()}</b> a day and your weight is changing by <b>${chg(sg.slopeWeek)} ${wUnit()}</b> a week.</p>
+      return `<p>From your last ${sg.days} days of food logs and ${sg.weighins} weigh-ins, your real TDEE (maintenance) is about <b>${fmtE(sg.tdee)} ${eUnit()}</b> a day${energyNeeds()?.tdee ? ` (the formula guessed ${fmtE(energyNeeds().tdee)})` : ''} and your weight is changing by <b>${chg(sg.slopeWeek)} ${wUnit()}</b> a week.</p>
         ${Math.abs(diff) >= 100 ? `<div class="notice"><span>${I.target}</span><div><strong>Suggested goal: ${fmtE(sg.suggested)} ${eUnit()}</strong><p>Your goal is ${fmtE(st.kcal)} ${eUnit()} now. Changing it ${diff < 0 ? 'down' : 'up'} by ${fmtE(Math.abs(diff))} should get you to the rate you picked.</p></div>
           <div class="actions"><button type="button" class="btn sm primary" data-act="smart-apply" data-v="${sg.suggested}">Use ${fmtE(sg.suggested)} ${eUnit()}</button></div></div>`
         : `<p class="hint">Your current goal of ${fmtE(st.kcal)} ${eUnit()} fits what you picked. Keep going.</p>`}`;
@@ -4321,11 +4329,18 @@ function waterCard() {
     <div class="mc-btns"><button type="button" class="icon-btn mc-b" data-act="water" data-d="-1" aria-label="Remove a glass" ${n ? '' : 'disabled'}>${I.minus}</button><button type="button" class="btn sm primary grow" data-act="water" data-d="1">${I.plus} Glass</button></div>
   </section>`;
 }
+function sparkline(vals) {
+  if (vals.length < 2) return '';
+  const lo = Math.min(...vals), hi = Math.max(...vals), span = hi - lo || 1, W = 120, H = 28;
+  const pts = vals.map((v, i) => `${(2 + i * (W - 4) / (vals.length - 1)).toFixed(1)},${(3 + (hi - v) / span * (H - 6)).toFixed(1)}`).join(' ');
+  return `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts}" fill="none" vector-effect="non-scaling-stroke"/></svg>`;
+}
 function weightCard() {
   const tr = weightTrend(), todayW = weights().find(w => w.d === dkey());
   return `<section class="panel tight mini-card" aria-label="Weight">
     <div class="mc-head"><span class="eyebrow" style="margin:0">Weight</span><a class="link" href="#/progress" style="font-size:12px;padding:0">Progress</a></div>
     <div class="mc-val">${tr ? `<b class="num">${wN(roundW10(toW(tr.last.kg)))}</b><span class="muted">${wUnit()}</span>` : '<span class="muted">Not logged yet</span>'}</div>
+    ${sparkline(weights().slice(-10).map(w => w.kg))}
     <p class="muted mc-sub num">${tr && tr.week != null ? `${tr.week > 0 ? '+' : tr.week < 0 ? '−' : ''}${n1(Math.abs(roundW10(toW(tr.week))))} ${wUnit()} this week` : '&nbsp;'}</p>
     <div class="mc-btns"><button type="button" class="btn sm ${todayW ? '' : 'primary'} grow" data-act="weight">${todayW ? `${I.check} Logged` : `${I.plus} Weigh in`}</button></div>
   </section>`;
@@ -4382,6 +4397,18 @@ function viewSummary() {
 }
 
 /* ---------- the new Today screen ---------- */
+let drawRings = true;
+function pulseRings(rings, animate) {
+  // rings: [{ id, pct, label }] outer to inner; gradient ids live in index.html
+  const size = 150, stroke = 16, gap = 3;
+  const arcs = rings.map((g, i) => {
+    const r = size / 2 - stroke / 2 - i * (stroke + gap), c = 2 * Math.PI * r, off = c * (1 - clamp(g.pct, 0, 1));
+    return `<circle class="pr-track pr-${g.id}" cx="75" cy="75" r="${r}" stroke-width="${stroke}" fill="none"/>
+      <circle class="pr-arc pr-${g.id}${animate ? ' draw' : ''}" cx="75" cy="75" r="${r}" stroke-width="${stroke}" fill="none" stroke-linecap="round"
+        stroke="url(#pr-${g.id})" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" style="--c:${c.toFixed(1)}" transform="rotate(-90 75 75)"/>`;
+  }).join('');
+  return `<svg class="pulse-svg" viewBox="0 0 ${size} ${size}" role="img" aria-label="${esc(rings.map(g => g.label).join(', '))}">${arcs}</svg>`;
+}
 function viewToday() {
   const k = dkey(), t = dayTotals(k), st = S.settings, goal = goalOn(k);
   const left = goal - t.kcal;
@@ -4397,58 +4424,72 @@ function viewToday() {
   const install = (!isStandalone() && !st.installDismissed) ? `
     <div class="notice">${I.phone}<div><strong>Put RepPlate on your home screen</strong><p>${esc(installHowTo())}</p></div>
       <div class="actions">${installPrompt ? '<button type="button" class="btn sm primary" data-act="install">Install</button>' : ''}<button type="button" class="btn sm" data-act="dismiss-install">Got it</button></div></div>` : '';
-  const playRow = (r, label) => `<div class="wk-row"><div class="wk-text"><span class="eyebrow">${label}</span><strong>${esc(r.name)}</strong><span class="muted">${plural(r.items.length, 'exercise')} · about ${routineMinutes(r)} min</span></div>
-      <button type="button" class="play" data-act="start" data-id="${esc(r.id)}" aria-label="Start ${esc(r.name)}">${I.play}</button></div>`;
+  const minsOf = r => `${plural(r.items.length, 'exercise')} · ${routineMinutes(r)} min`;
+  const card = (lab, title, sub, r, cls = '') => `<div class="wk-row ${cls}"><div class="wk-text"><span class="pw-lab">${lab}</span><strong>${title}</strong><span class="muted">${sub}</span></div>
+      ${r ? `<button type="button" class="play" data-act="start" data-id="${esc(r.id)}" aria-label="Start ${esc(r.name)}">${I.playF}</button>` : ''}</div>`;
   let workout;
   if (doneToday.length) {
-    workout = doneToday.map(w => `<div class="done-line"><span class="tick">${I.check}</span><span>${esc(w.name)} · ${clock((w.end - w.start) / 1000)} · ${plural(w.sets.length, 'set')}</span></div>`).join('');
+    workout = card(`${I.check} Done today`, esc(doneToday.map(w => w.name).join(' + ')), `${clock(doneToday.reduce((s2, w) => s2 + (w.end - w.start) / 1000, 0))} · ${plural(doneToday.reduce((s2, w) => s2 + w.sets.length, 0), 'set')}`, null, 'done');
   } else if (sched && todays) {
-    workout = playRow(todays, `Today · ${new Date().toLocaleDateString(undefined, { weekday: 'long' })}`);
+    workout = card(`Today · ${new Date().toLocaleDateString(undefined, { weekday: 'long' })}`, esc(todays.name), minsOf(todays), todays);
   } else if (sched) {
     const nx = nextScheduled();
-    workout = `<div class="done-line"><span class="tick rest">${I.clock}</span><span>Rest day${nx ? `. Next: ${esc(nx.r.name)} ${nx.i === 1 ? 'tomorrow' : 'on ' + fromKey(nx.k).toLocaleDateString(undefined, { weekday: 'long' })}` : ''}.</span></div>`;
+    workout = nx ? card('Rest day', `Next: ${esc(nx.r.name)}`, `${nx.i === 1 ? 'Tomorrow' : fromKey(nx.k).toLocaleDateString(undefined, { weekday: 'long' })} · ${minsOf(nx.r)}`, nx.r)
+      : card('Rest day', 'Nothing planned', 'Pick days on the Train tab', null);
   } else if (next) {
-    workout = playRow(next, 'Up next');
+    workout = card('Up next', esc(next.name), minsOf(next), next);
   } else {
     workout = `<p class="muted">You don’t have any routines yet.</p><a class="btn primary block" href="#/edit/new">${I.plus} Make a routine</a>`;
   }
-  const streak = logStreak(), wk = workoutsThisWeek();
+  const streak = logStreak(), wk = workoutsThisWeek(), bonus = bonusOn(k);
+  const water = waterToday(), wGoal = st.waterGoal || 8;
+  const animate = drawRings; drawRings = false;
+  const rings = pulseRings([
+    { id: 'k', pct: t.kcal / (goal || 1), label: `Calories: ${fmtE(t.kcal)} of ${fmtE(goal)} ${eUnit()} eaten` },
+    { id: 'p', pct: t.p / (st.protein || 1), label: `Protein: ${n0(t.p)} of ${n0(st.protein)} g` },
+    { id: 'w', pct: water / wGoal, label: `Water: ${water} of ${wGoal} glasses` },
+  ], animate);
+  const mtile = (m, label, v, g) => `<section class="mtile m-${m}" aria-label="${label}"><div class="mt-head"><span>${label}</span><span class="num">${n0(g)} g</span></div>
+      <div class="mt-val num">${n0(v)}<small> g</small></div><div class="mbar" role="img" aria-label="${label}: ${n0(v)} of ${n0(g)} grams"><i style="width:${g ? clamp(v / g * 100, 0, 100) : 0}%"></i></div></section>`;
   return `
   <header class="top"><div><p class="eyebrow date">${esc(today.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' }))}</p><h1 class="h-display">Today</h1></div>
-    <div class="top-acts">${streak >= 2 ? `<a class="streak" href="#/summary" aria-label="${streak}-day logging streak">${I.bolt}<b class="num">${streak}</b></a>` : ''}<button type="button" class="icon-btn coach-btn" data-act="coach" aria-label="Ask your coach">${I.chat}</button></div></header>
+    <div class="top-acts">${streak >= 2 ? `<a class="streak" href="#/summary" aria-label="${streak}-day logging streak">${I.flame}<b class="num">${streak}</b></a>` : ''}<button type="button" class="icon-btn coach-btn" data-act="coach" aria-label="Ask your coach">${I.chat}</button></div></header>
   ${resumeBanner()}
   ${setup}
   ${summaryCard()}
-  <section class="panel" aria-label="Energy today">
-    <div class="energy-top">
-      <div class="ring-wrap">${ringSVG(t.kcal / goal)}
-        <div class="ring-center"><span class="big">${fmtE(Math.abs(left))}</span><span class="lbl">${eUnit()} ${left >= 0 ? 'left' : 'over'}</span></div></div>
-      ${macroBars(t)}
+  <div class="today-cols"><div class="today-a">
+  <section class="pulse-energy" aria-label="Energy today">
+    <div class="panel pulse-hero energy-top">
+      <div class="pulse-rings">${rings}</div>
+      <div class="pulse-legend">
+        <div class="pl pl-k"><span class="pl-lab">${eUnit() === 'kJ' ? 'Kilojoules' : 'Calories'} ${left >= 0 ? 'left' : 'over'}</span><span class="pl-val pl-big num">${fmtE(Math.abs(left))}<small> ${eUnit()}</small></span>
+          <span class="pl-sub num">${fmtE(t.kcal)} eaten · goal ${fmtE(goal)}</span>${bonus ? `<span class="pl-sub eq-note">${I.bolt} incl. +${fmtE(bonus)} from exercise</span>` : ''}</div>
+        <div class="pl pl-p m-p"><span class="pl-lab">Protein</span><span class="pl-val num">${n0(t.p)}<small> / ${n0(st.protein)} g</small></span></div>
+        <div class="pl pl-w"><span class="pl-lab">Water</span><span class="pl-val num">${water}<small> / ${wGoal} glasses</small></span></div>
+      </div>
+      <button type="button" class="pulse-ideas" data-act="eat-now">${I.target}<span>${lbl(`What can I eat with ${fmtE(Math.max(0, left))} ${eUnit()} left?`, 'What can I eat now?')}</span>${I.chevR}</button>
     </div>
-    ${eqStrip(t)}
-    <div class="row-btns">
-      <button type="button" class="btn primary" data-act="snap">${I.camera} ${lbl('Snap a meal', 'Snap')}</button>
-      <button type="button" class="btn" data-act="say">${I.mic} ${lbl('Say it', 'Say it')}</button>
-    </div>
-    <button type="button" class="search-pill" data-act="add" data-meal="${mealNow()}" data-today="1">${I.search}<span>Search foods</span></button>
-    <div class="row-btns">
-      <button type="button" class="btn ghost" data-act="eat-now">${I.target} ${lbl('What can I eat?', 'Ideas now')}</button>
-      <a class="btn ghost" href="#/plan">${I.utensils} ${lbl('Meal ideas', 'Meals')}</a>
+    <div class="pulse-actions">
+      <button type="button" class="btn primary log-btn" data-act="add" data-meal="${mealNow()}" data-today="1">${I.plus} Log food</button>
+      <button type="button" class="round-btn" data-act="snap" aria-label="Snap a meal">${I.camera}</button>
+      <button type="button" class="round-btn" data-act="say" aria-label="Say what you ate">${I.mic}</button>
     </div>
   </section>
-  ${usualsCard()}
-  <div class="mini-grid">${waterCard()}${weightCard()}${activityCard()}${fastCard()}</div>
-  ${habitsCard()}
-  <section class="panel tight" aria-label="Workout">
-    <div class="section-row"><h2 class="section">Workout</h2><span class="muted num" style="font-size:13px">${wk} of ${weekTarget()} this week</span></div>
-    ${workout}
-    <div class="row-btns"><a class="btn" href="#/train">${lbl('All routines', 'Routines')}</a><button type="button" class="btn" data-act="quick">${I.bolt} ${lbl('Quick workout', 'Quick')}</button></div>
-  </section>
+  <div class="macro-tiles">${mtile('c', 'Carbs', t.c, st.carbs)}${mtile('f', 'Fat', t.f, st.fat)}</div>
   <section class="panel tight week" aria-label="Last 7 days">
     <div class="section-row"><h2 class="section">Last 7 days</h2><span class="muted num" style="font-size:13px">${eUnit()} eaten</span></div>
     ${weekChart()}
     <div class="legend"><span><i class="ln"></i>Goal ${fmtE(st.kcal)} ${eUnit()}</span><span><i class="dt"></i>Workout</span></div>
   </section>
+  </div><div class="today-b">
+  <section class="panel pulse-workout" aria-label="Workout">
+    ${workout}
+    <div class="pw-foot"><span class="muted num">${wk} of ${weekTarget()} ${lbl('workouts this week', 'this week')}</span><span class="pw-links"><a class="link" href="#/train">Routines</a><button type="button" class="link" data-act="quick">Quick workout</button></span></div>
+  </section>
+  <div class="mini-grid">${waterCard()}${weightCard()}${activityCard()}${fastCard()}</div>
+  ${usualsCard()}
+  ${habitsCard()}
+  </div></div>
   ${install}`;
 }
 
@@ -5283,6 +5324,7 @@ function viewMe() {
     <h2 class="section">Daily goals</h2>
     <form class="form" data-form="goals">
       <label class="field"><span>Energy (${eUnit()} per day)</span><input class="input num" id="g-kcal" inputmode="numeric" value="${Math.round(toE(st.kcal))}"></label>
+      <p class="hint tdee-line" id="g-tdee">${esc(goalVsTdee(st.kcal)) || 'Not sure what to aim for? Open the TDEE &amp; goal calculator below.'}</p>
       <div class="field"><span>Macro split</span><div class="seg wrap4" id="g-style">${MACRO_STYLES.map(([v, l]) => `<button type="button" class="${st.macroStyle === v ? 'on' : ''}" data-act="macro-style" data-v="${v}">${l}</button>`).join('')}</div>
         <p class="hint" id="g-style-hint">${esc(MACRO_STYLES.find(m => m[0] === st.macroStyle)?.[2] || 'Tap one to fill in protein, carbs and fat for your energy goal, then save.')}</p></div>
       <div class="grid3">
@@ -5295,9 +5337,9 @@ function viewMe() {
       <a class="btn" href="#/plan">${I.utensils} Meal ideas for this goal</a>
     </form>
     <details class="calc" ${st.goalsSet ? '' : 'open'}>
-      <summary>Estimate my goals</summary>
+      <summary>TDEE &amp; goal calculator</summary>
       <form class="form" data-form="calc" style="margin-top:12px">
-        <p class="hint">Uses the Mifflin–St Jeor formula, a common starting point. Adjust after a few weeks based on how your weight actually changes.</p>
+        <p class="hint">Works out your BMR (resting burn), your TDEE (the calories you burn in a normal day) and a daily target for your goal.</p>
         <div class="field"><span>Sex</span><div class="seg"><button type="button" class="${P.sex === 'f' ? 'on' : ''}" data-act="calc-sex" data-v="f">Female</button><button type="button" class="${P.sex === 'm' ? 'on' : ''}" data-act="calc-sex" data-v="m">Male</button></div></div>
         <div class="grid3">
           <label class="field"><span>Age</span><input class="input" id="c-age" inputmode="numeric" value="${P.age || ''}"></label>
@@ -5305,10 +5347,10 @@ function viewMe() {
           <label class="field"><span>Weight ${wUnit()}</span><input class="input" id="c-wt" inputmode="decimal" value="${P.weightKg ? trimNum(roundW10(toW(P.weightKg))) : ''}"></label>
         </div>
         <label class="field"><span>How active are you?</span><select class="input" id="c-act">
-          ${[[1.2, 'Mostly sitting, little exercise'], [1.375, 'Light exercise 1–3 days a week'], [1.55, 'Moderate exercise 3–5 days a week'], [1.725, 'Hard exercise 6–7 days a week'], [1.9, 'Very physical job plus training']].map(([v, l]) => `<option value="${v}" ${Number(P.act || 1.55) === v ? 'selected' : ''}>${l}</option>`).join('')}
+          ${ACTIVITY.map(([v, l]) => `<option value="${v}" ${Number(P.act || 1.55) === v ? 'selected' : ''}>${l}</option>`).join('')}
         </select></label>
         <label class="field"><span>Goal</span><select class="input" id="c-goal">
-          ${[[-500, 'Lose about 0.5 kg a week'], [-250, 'Lose slowly'], [0, 'Stay the same'], [250, 'Gain slowly (building muscle)']].map(([v, l]) => `<option value="${v}" ${Number(P.goal ?? 0) === v ? 'selected' : ''}>${l}</option>`).join('')}
+          ${GOAL_ADJ.map(([v, l]) => `<option value="${v}" ${Number(P.goal ?? 0) === v ? 'selected' : ''}>${l}</option>`).join('')}
         </select></label>
         <p class="error" id="calc-err" hidden></p>
         <button class="btn">Calculate</button>
@@ -5344,7 +5386,7 @@ function viewMe() {
     ${pref('Weight unit', 'weight', [['kg', 'kg'], ['lb', 'lb']])}
     ${pref('Daily water goal', 'waterGoal', [[6, '1.5 L'], [8, '2 L'], [10, '2.5 L'], [12, '3 L']])}
     ${pref('Default rest between sets', 'rest', [[30, '30 s'], [60, '60 s'], [90, '90 s'], [120, '2 min']])}
-    ${pref('Appearance', 'theme', [['system', 'Auto'], ['light', 'Light'], ['dark', 'Dark']])}
+    ${pref('Appearance', 'theme', [['dark', 'Dark'], ['light', 'Light'], ['system', 'Auto']])}
     <label class="pref"><span class="pref-label">Food search shows products sold in</span>
       <select class="input" id="pref-region">${REGIONS.map(([v, l]) => `<option value="${v}" ${st.region === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
   </section>
@@ -5381,6 +5423,31 @@ function updateGoalCheck() {
   const kcal = p * 4 + c * 4 + f * 9;
   const goal = fromE(parseNum($('#g-kcal').value) || 0);
   out.textContent = `Protein, carbs and fat add up to ${n0(toE(kcal))} ${eUnit()}${goal ? ` (${Math.round(kcal / goal * 100)}% of your energy goal)` : ''}.`;
+  const tl = $('#g-tdee'), line = goalVsTdee(goal); if (tl && line) tl.textContent = line;
+}
+/* ---------- energy needs: BMR, TDEE (maintenance) and the daily target, each explained ---------- */
+const ACTIVITY = [[1.2, 'Mostly sitting, little exercise'], [1.375, 'Light exercise 1–3 days a week'], [1.55, 'Moderate exercise 3–5 days a week'], [1.725, 'Hard exercise 6–7 days a week'], [1.9, 'Very physical job plus training']];
+const GOAL_ADJ = [[-500, 'Lose about 0.5 kg a week'], [-250, 'Lose slowly (about 0.25 kg a week)'], [0, 'Stay the same'], [250, 'Gain slowly (building muscle)']];
+const ENERGY_WORDS = {
+  bmr: 'Calories your body burns at complete rest: breathing, heartbeat, staying warm.',
+  tdee: 'Total Daily Energy Expenditure: all you burn in a normal day. Eat this much and your weight stays the same.',
+  target: 'What to eat each day to reach your goal.',
+};
+const bmrOf = (sex, kg, cm, age) => 10 * kg + 6.25 * cm - 5 * age + (sex === 'm' ? 5 : -161);   // Mifflin–St Jeor
+function energyNeeds(P = S.settings.profile || {}) {
+  const ws = weights(), kg = (ws.length ? ws[ws.length - 1].kg : 0) || P.weightKg;
+  if (!P.sex || !(P.age > 0) || !(P.height > 0) || !(kg > 0)) return null;
+  const act = Number(P.act) || 0;
+  const bmr = Math.round(bmrOf(P.sex, kg, P.height, P.age) / 10) * 10;      // to the nearest 10, so the sums add up on screen
+  return { bmr, act, tdee: act ? Math.round(bmr * act / 10) * 10 : 0, kg, actLabel: (ACTIVITY.find(a => a[0] === act) || [])[1] || '' };
+}
+// "Maintenance 2,760 kcal · this goal is 500 below → about 0.45 kg a week"
+function goalVsTdee(goalKcal) {
+  const n = energyNeeds(); if (!n || !n.tdee || !(goalKcal > 0)) return '';
+  const d = goalKcal - n.tdee, wk = Math.abs(d) * 7 / 7700;
+  const pace = Math.abs(d) < 60 ? 'about the same as maintenance, so your weight should stay steady'
+    : `${fmtE(Math.abs(d))} ${eUnit()} ${d < 0 ? 'below' : 'above'} maintenance, about ${trimNum(Math.round(wk * 20) / 20)} kg a week ${d < 0 ? 'lost' : 'gained'}`;
+  return `Your TDEE (maintenance) is about ${fmtE(n.tdee)} ${eUnit()} a day and your BMR (resting burn) about ${fmtE(n.bmr)} ${eUnit()}. This goal is ${pace}.`;
 }
 let calcSex = null;
 function runCalc() {
@@ -5393,8 +5460,8 @@ function runCalc() {
   }
   err.hidden = true;
   const kg = fromW(wt);
-  const bmr = 10 * kg + 6.25 * ht - 5 * age + (sex === 'm' ? 5 : -161);
-  const tdee = bmr * act;
+  const bmr = Math.round(bmrOf(sex, kg, ht, age) / 10) * 10;
+  const tdee = Math.round(bmr * act / 10) * 10;
   const floor = sex === 'm' ? 1500 : 1200;
   let target = Math.round((tdee + goal) / 10) * 10;
   const floored = target < floor; if (floored) target = floor;
@@ -5403,10 +5470,18 @@ function runCalc() {
   const carbs = Math.max(0, Math.round((target - protein * 4 - fat * 9) / 4 / 5) * 5);
   S.settings.profile = { sex, age, height: ht, weightKg: kg, act, goal };
   save();
+  const u = eUnit(), row = (cls, name, what, val) => `<div class="tdee-row ${cls}"><div><b>${name}</b><p>${what}</p></div><strong class="num">${val}</strong></div>`;
   out.innerHTML = `<div class="calc-out">
-    <span>You burn roughly <strong>${fmtE(tdee)} ${eUnit()}</strong> a day.</span>
-    <span>Suggested goal: <strong>${fmtE(target)} ${eUnit()}</strong> · protein ${protein} g · carbs ${carbs} g · fat ${fat} g</span>
-    ${floored ? `<span class="hint">Raised to ${fmtE(floor)} ${eUnit()}, a common minimum for eating enough without medical supervision.</span>` : ''}
+    <div class="tdee-steps">
+      ${row('', 'BMR', esc(ENERGY_WORDS.bmr), `${fmtE(bmr)} ${u}`)}
+      ${row('mult', `× ${act} activity`, esc((ACTIVITY.find(a => a[0] === act) || [])[1] || ''), '')}
+      ${row('total', 'TDEE · maintenance', esc(ENERGY_WORDS.tdee), `${fmtE(tdee)} ${u}`)}
+      ${row('adj', 'Goal', esc((GOAL_ADJ.find(g => g[0] === goal) || [])[1] || ''), goal ? `${goal < 0 ? '−' : '+'}${fmtE(Math.abs(goal))} ${u}` : '±0')}
+      ${row('target', 'Daily target', esc(ENERGY_WORDS.target), `${fmtE(target)} ${u}`)}
+    </div>
+    ${floored ? `<span class="hint">Raised to ${fmtE(floor)} ${u}, a common minimum for eating enough without medical supervision.</span>` : ''}
+    <div class="tdee-macros"><span class="m-p"><i class="dot"></i><b>${protein} g</b> protein</span><span class="m-c"><i class="dot"></i><b>${carbs} g</b> carbs</span><span class="m-f"><i class="dot"></i><b>${fat} g</b> fat</span></div>
+    <p class="hint">Protein: ${goal < 0 ? '1.8' : '1.6'} g per kg of body weight${goal < 0 ? ' (helps keep muscle)' : ''}. Fat: about 27% of calories. Carbs: the rest. After 2 weeks of logging, Progress > Smart goal shows your real TDEE.</p>
     <button type="button" class="btn primary" data-act="calc-use" data-k="${target}" data-p="${protein}" data-c="${carbs}" data-f="${fat}">Use these goals</button>
     <a class="link" href="#/plan">See meal ideas for ${fmtE(target)} ${eUnit()}</a>
   </div>`;

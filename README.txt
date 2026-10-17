@@ -58,12 +58,16 @@ WHAT IT DOES
   for a similar one (in the workout or in the routine editor).
 - Water, streaks and a weekly summary: tap + for each glass, a streak badge for days in a row
   you logged food, and a Monday summary of last week.
-- Look and feel: built like Apple's own iPhone apps (Health, Fitness, App Store). Plain cards on the
-  iOS grouped background, Apple's iOS 26 system colours and text sizes, the iPhone system font with
-  rounded numbers, true-black dark mode, a floating Liquid Glass tab bar with a separate round scan
-  button, a large title that moves into the top bar as you scroll, pages that slide in and out,
-  sheets you can pull down to close, and (from the home screen) swipe in from the left edge to go
-  back. "Reduce Transparency" on the phone makes the glass solid.
+- Look and feel ("Pulse"): styled after Apple's Fitness app. It opens in true-black dark mode
+  (Light and Auto are under Me > Appearance). Today leads with three activity rings: calories
+  (pink), protein (green) and water (blue). Next to them are calories left, one big Log food button
+  with Snap and Say beside it, carbs and fat tiles, and the next workout with a play button. Each
+  kind of thing keeps its own colour across the app: workouts orange, weight purple, water blue,
+  fasting indigo. Numbers use a rounded font (SF Pro Rounded on iPhone, Nunito elsewhere). The tab
+  bar is floating Liquid Glass with a separate round scan button. Large titles move into the top
+  bar as you scroll, pages slide in and out, and sheets can be pulled down to close. From the home
+  screen you can swipe in from the left edge to go back. "Reduce Transparency" on the phone makes
+  the glass solid.
 - Workouts: plate calculator and warm-up sets for barbell lifts; supersets and drop sets (set them
   in the routine editor); rate how hard each set felt (RPE 6–10) and the "try heavier" tip uses
   it; six ready-made programs (Beginner Full Body, 5×5 Strength, Push/Pull/Legs 6 or 3 days, Home
@@ -86,8 +90,12 @@ WHAT IT DOES
 - AI coach chat (with the free key): ask about your eating and training and it answers from your
   own logs, goals and food needs.
 - Macro styles (balanced, high protein, low carb, keto) and daily habits with streaks.
+- TDEE & goal calculator (Me > Goals): works out your BMR (energy at rest, Mifflin-St Jeor
+  formula), multiplies it by your activity level to get your TDEE (maintenance calories), then
+  adds or takes away for your goal. Every step is labelled and explained.
 - Works on every phone size, from small phones (320 px wide) to large ones; longer button
-  labels switch to short ones on narrow screens.
+  labels switch to short ones on narrow screens. Tablets get a wider layout. On an iPad in
+  landscape, Today shows two columns: rings and food on the left, workout and tiles on the right.
 - Goals in kcal or kJ, a goal estimator, a 7-day chart, workout history, and backup/restore.
 - Works offline once it has been opened (food lookups still need internet).
 
@@ -95,19 +103,20 @@ PUT IT ONLINE FOR FREE (needed so the camera works on your phone)
 The phone camera only works on a secure (https) web address, so the folder has to be hosted.
 Two free options:
 
-  Option A - Netlify Drop (easiest)
-  1. Unzip this folder on a computer.
-  2. Go to https://app.netlify.com/drop
-  3. Drag the whole "repplate" folder onto the page.
-  4. Netlify gives you a link like https://something.netlify.app
-     Make a free account when it asks, so the site stays up. You can rename the link in
-     Site settings.
-
-  Option B - GitHub Pages
+  Option A - GitHub Pages (free, no credit limits)
   1. Make a free GitHub account and a new public repository.
-  2. Upload everything inside this folder (Add file > Upload files).
+  2. Upload everything inside this folder (Add file > Upload files). Keep the folders
+     (data, fonts, icons, img, vendor) as folders.
   3. Settings > Pages > Deploy from a branch > main > / (root) > Save.
   4. Your app appears at https://YOUR-NAME.github.io/REPO-NAME/ after a minute or two.
+  To update later: Add file > Upload files, drop in the changed files (in the same folder they
+  live in) and Commit. The site refreshes within a couple of minutes.
+
+  Option B - Netlify Drop
+  1. Go to https://app.netlify.com/drop
+  2. Drag the whole "repplate" folder onto the page.
+  3. Netlify gives you a link like https://something.netlify.app
+     The free plan has monthly credits, and every upload uses some of them.
 
 PUT IT ON YOUR HOME SCREEN
 - iPhone: open the link in Safari, tap Share, then "Add to Home Screen".
@@ -121,7 +130,8 @@ choose to send go to Google Gemini; your key stays on the phone and is left out 
 Me > Restore on a new phone.
 
 CHANGING THINGS LATER
-- Starter routines live near the top of app.js (STARTERS). Colours and fonts are in styles.css.
+- Starter routines live near the top of app.js (STARTERS). Colours and fonts are in styles.css
+  (the ring and category colours are in the "PULSE" section).
 - After uploading changed files, open sw.js and change VERSION (for example 'repplate-v2')
   so phones pick up the new version.
 - Opening index.html straight from your computer won't load the exercise list; it has to be
@@ -136,5 +146,5 @@ CREDITS AND LICENCES
   Their name search is often busy or limited for apps; barcode lookups are more reliable.
 - Barcode reading: ZXing (Apache 2.0) in vendor/zxing.min.js, used when the phone has no
   built-in barcode reader.
-- Fonts: Big Shoulders Display and Archivo (SIL Open Font Licence).
+- Fonts: Big Shoulders Display, Archivo and Nunito (all SIL Open Font Licence), in fonts/.
 RepPlate gives general fitness information, not medical advice.
