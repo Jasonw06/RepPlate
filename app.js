@@ -75,6 +75,11 @@ const I = {
   shuffle: svg('<path d="M3 7h3.5c3.5 0 4.5 10 8 10H21M3 17h3.5c1.5 0 2.5-1.8 3.4-4M14.6 9C15.5 7.8 16.4 7 18 7h3"/><path d="M18 4l3 3-3 3M18 14l3 3-3 3"/>'),
   volOn: svg('<path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>'),
   volOff: svg('<path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/>'),
+  chart: svg('<path d="M4 19.5h16"/><path d="M5 15.5l4.2-4.2 3.3 3.2L19 8"/><path d="M15 8h4v4"/>'),
+  sliders: svg('<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>'),
+  sparkle: svg('<path d="M11 3.5l1.9 5.1 5.1 1.9-5.1 1.9L11 17.5l-1.9-5.1L4 10.5l5.1-1.9z"/><path d="M18.5 15l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/>'),
+  shield: svg('<path d="M12 3l7.5 3v5.3c0 4.6-3.1 8.4-7.5 9.7-4.4-1.3-7.5-5.1-7.5-9.7V6z"/><path d="M8.8 12l2.2 2.2 4.2-4.4"/>'),
+  leaf: svg('<path d="M5 19.5C5 11 10 5.5 19.5 4.5c0 9.5-5.5 15-14.5 15z"/><path d="M5 19.5l7.5-7.5"/>'),
 };
 
 /* ============================== helpers ============================== */
@@ -547,8 +552,8 @@ function render(name, arg) {
     case 'strength': html = viewStrength(); break;
     default: name = 'today'; html = viewToday();
   }
-  if (name !== 'today') drawRings = true;
   v.innerHTML = html;
+  lastRendered = name;
   document.body.classList.toggle('modal-page', name === 'edit');
   document.body.dataset.page = name;
   const tab = { plan: 'food', progress: 'me', summary: 'me', programs: 'train', strength: 'train', today: 'today', food: 'food', train: 'train', exercises: 'train', ex: 'train', routine: 'train', edit: 'train', me: 'me' }[name] || 'today';
@@ -774,20 +779,29 @@ function viewFood() {
       ${list.length ? `<button type="button" class="add-row subtle" data-act="save-meal" data-meal="${m}">${I.bookmark} Save as a meal</button>` : ''}</div>
     </section>`;
   }).join('');
+  const goal = goalOn(k), left = goal - t.kcal, bonus = bonusOn(k);
+  const ring = pulseRings([{ id: 'k', pct: t.kcal / (goal || 1), label: `Calories: ${fmtE(t.kcal)} of ${fmtE(goal)} ${eUnit()} eaten` }], firstVisit('food'));
   return `
-  <header class="top datebar"><div><h1 class="h-display">Food</h1><p class="sub">${['Today', 'Yesterday', 'Tomorrow'].includes(dayLabel(k)) ? `<b>${esc(dayLabel(k))}</b> · ` : ''}${esc(longDate(k))}</p></div>
-    <div class="day-nav"><button type="button" class="icon-btn" data-act="day" data-d="-1" aria-label="Previous day">${I.chevL}</button><button type="button" class="icon-btn" data-act="day" data-d="1" aria-label="Next day">${I.chevR}</button></div>
+  <header class="top datebar"><div><p class="eyebrow date">${['Today', 'Yesterday', 'Tomorrow'].includes(dayLabel(k)) ? `${esc(dayLabel(k))} · ` : ''}${esc(longDate(k))}</p><h1 class="h-display">Food</h1></div>
+    <div class="day-nav top-acts"><button type="button" class="icon-btn" data-act="day" data-d="-1" aria-label="Previous day">${I.chevL}</button><button type="button" class="icon-btn" data-act="day" data-d="1" aria-label="Next day">${I.chevR}</button></div>
   </header>
   ${k !== dkey() ? `<button type="button" class="link" style="justify-self:center" data-act="day-today">Back to today</button>` : ''}
-  <section class="panel tight strip" aria-label="Day summary">
-    ${eqStrip(t, k).replace('class="eq"', 'class="eq" style="border-top:0;padding-top:0"')}
-    <div class="mini-macros">${[['p', 'Protein', st.protein], ['c', 'Carbs', st.carbs], ['f', 'Fat', st.fat]].map(([m, l, g]) => `
-      <div class="m-${m}"><div class="macro-head"><span><i class="dot"></i>${l}</span></div><span class="num">${n0(t[m])}<small class="muted"> / ${n0(g)} g</small></span><div class="mbar"><i style="width:${g ? clamp(t[m] / g * 100, 0, 100) : 0}%"></i></div></div>`).join('')}</div>
+  <div class="cols"><div class="col-a">
+  <section class="panel pulse-hero solo" aria-label="Day summary">
+    <div class="pulse-rings">${ring}</div>
+    <div class="pulse-legend">
+      <div class="pl pl-k"><span class="pl-lab">${eUnit() === 'kJ' ? 'Kilojoules' : 'Calories'} ${left >= 0 ? 'left' : 'over'}</span><span class="pl-val pl-big num">${fmtE(Math.abs(left))}<small> ${eUnit()}</small></span></div>
+      <div class="pl pl-n"><span class="pl-lab">Eaten</span><span class="pl-val num">${fmtE(t.kcal)}<small> ${eUnit()}</small></span></div>
+      <div class="pl pl-n"><span class="pl-lab">Goal</span><span class="pl-val num">${fmtE(goal)}<small> ${eUnit()}</small></span>${bonus ? `<span class="pl-sub eq-note">${I.bolt} incl. +${fmtE(bonus)} from exercise</span>` : ''}</div>
+    </div>
+    <a class="pulse-ideas" href="#/plan">${I.utensils}<span>Meal ideas for your goal</span>${I.chevR}</a>
   </section>
-  <a class="btn block" href="#/plan">${I.utensils} Meal ideas for your goal</a>
+  ${macroTiles(t)}
+  </div><div class="col-b">
   ${meals}
   ${nutrientsPanel(k)}
-  <p class="credit">Everyday foods: USDA nutrient data. Barcodes and packaged products: Open Food Facts (ODbL licence).</p>`;
+  <p class="credit">Everyday foods: USDA nutrient data. Barcodes and packaged products: Open Food Facts (ODbL licence).</p>
+  </div></div>`;
 }
 
 /* ---------- Open Food Facts ---------- */
@@ -1893,16 +1907,16 @@ function viewPlan() {
   ${planTabs('day')}
   ${dietBar()}
   <p class="lead">Everyday South African food, sized to your daily goal. You get a new set of ideas every day. Tap “Another option” to swap a meal, and log a meal once you’ve eaten it.</p>
-  <section class="panel tight" aria-label="Plan totals">
-    <dl class="eq" style="border-top:0;padding-top:0">
-      <div><dt>Goal</dt><dd>${fmtE(st.kcal)}</dd></div><div class="op" aria-hidden="true">·</div>
-      <div><dt>This plan</dt><dd>${fmtE(tot.kcal)}</dd></div><div class="op" aria-hidden="true">·</div>
-      <div><dt>Protein</dt><dd>${n0(tot.p)}<small style="font-size:14px"> g</small></dd></div>
-    </dl>
-    <div class="mini-macros">${[['p', 'Protein', st.protein], ['c', 'Carbs', st.carbs], ['f', 'Fat', st.fat]].map(([m, l, g]) => `
-      <div class="m-${m}"><div class="macro-head"><span><i class="dot"></i>${l}</span></div><span class="num">${n0(tot[m])}<small class="muted"> / ${n0(g)} g</small></span><div class="mbar"><i style="width:${g ? clamp(tot[m] / g * 100, 0, 100) : 0}%"></i></div></div>`).join('')}</div>
-    ${protShort ? `<p class="hint">This plan is a bit low on protein for your goal. Swap in meals marked “High protein”, or add ${proteinIdeas()}.</p>` : ''}
+  <section class="panel pulse-hero solo" aria-label="Plan totals">
+    <div class="pulse-rings">${pulseRings([{ id: 'k', pct: tot.kcal / (st.kcal || 1), label: `This plan: ${fmtE(tot.kcal)} of ${fmtE(st.kcal)} ${eUnit()}` }], firstVisit('plan'))}</div>
+    <div class="pulse-legend">
+      <div class="pl pl-k"><span class="pl-lab">This plan</span><span class="pl-val pl-big num plan-total">${fmtE(tot.kcal)}<small> ${eUnit()}</small></span></div>
+      <div class="pl pl-n"><span class="pl-lab">Your goal</span><span class="pl-val num">${fmtE(st.kcal)}<small> ${eUnit()}</small></span></div>
+      <div class="pl pl-n"><span class="pl-lab">Meals</span><span class="pl-val num">${plan.filter(m => !m.empty).length}</span></div>
+    </div>
+    ${protShort ? `<p class="hint hero-foot">This plan is a bit low on protein for your goal. Swap in meals marked “High protein”, or add ${proteinIdeas()}.</p>` : ''}
   </section>
+  ${macroTiles(tot)}
   ${plan.map(m => m.empty ? `
   <section class="panel tight plan-meal" aria-label="${esc(m.label)}"><div class="plan-head"><span class="eyebrow" style="margin:0">${esc(m.label)}</span></div>
     <p class="muted">None of the built-in ${esc(m.label.toLowerCase())} ideas fit your food needs. Try “What can I eat?” on Today, or <button type="button" class="link" data-act="diet">change your food needs</button>.</p></section>` : `
@@ -2199,7 +2213,7 @@ function programPanel() {
   const tip = p.tips[week <= 2 ? 0 : week >= p.weeks ? 2 : 1];
   const days = programDays(p, Math.min(week, p.weeks));
   return `<section class="panel tight prog-now" aria-label="Program">
-    <div class="section-row"><h2 class="section">${esc(p.name)}</h2><span class="muted num" style="font-size:13px">${over ? 'Finished' : `Week ${week} of ${p.weeks}`}</span></div>
+    <div class="section-row">${secHead(I.target, 'workout', esc(p.name))}<span class="muted num" style="font-size:13px">${over ? 'Finished' : `Week ${week} of ${p.weeks}`}</span></div>
     <div class="mbar prog-bar" role="img" aria-label="${done} of ${total} workouts done"><i style="width:${clamp(done / total * 100, 0, 100)}%"></i></div>
     <p class="muted" style="font-size:14px">${done} of ${total} workouts done · this week: ${[1, 2, 3, 4, 5, 6, 0].filter(wd => days[wd]).map(wd => `${DAYS.find(d => d[1] === wd)[0]} ${esc(p.routines.find(r => r.key === days[wd]).name)}`).join(', ')}</p>
     <p class="hint">${esc(over ? 'Program complete. Well done! Start it again with heavier weights, or pick a new one.' : tip)}</p>
@@ -2725,7 +2739,7 @@ function nutrientsPanel(k) {
   const goal = goalOn(k);
   const rows = [['fiber', 'Fibre', 30, 'min', 'aim for at least'], ['sugar', 'Sugar', Math.round(90 * goal / 2000), 'max', 'keep under'], ['sat', 'Saturated fat', Math.round(goal * 0.1 / 9), 'max', 'keep under'], ['salt', 'Salt', 5, 'max', 'keep under']];
   return `<section class="panel tight" aria-label="Nutrients">
-    <div class="section-row"><h2 class="section">Nutrients</h2><span class="muted" style="font-size:13px">${have < n ? `from ${have} of ${n} foods` : 'all foods'}</span></div>
+    <div class="section-row">${secHead(I.leaf, 'protein', 'Nutrients')}<span class="muted" style="font-size:13px">${have < n ? `from ${have} of ${n} foods` : 'all foods'}</span></div>
     <ul class="nut-list">${rows.map(([key, l, target, kind, word]) => {
       const v = t[key], pct = v / target, cls = kind === 'min' ? (pct >= 1 ? 'good' : pct >= 0.6 ? 'mid' : 'low') : (pct > 1 ? 'bad' : pct > 0.8 ? 'mid' : 'good');
       return `<li class="nut ${cls}"><div class="macro-head"><span>${l}</span><span class="num">${n1(v)}<small> / ${word} ${target} g</small></span></div><div class="mbar"><i style="width:${clamp(pct * 100, 2, 100)}%"></i></div></li>`;
@@ -2808,7 +2822,7 @@ function bodyPanel() {
   }).join('');
   const waist = log.filter(b => b.waist != null).map(b => ({ d: b.d, v: toL(b.waist) }));
   return `<section class="panel tight" aria-label="Body measurements">
-    <div class="section-row"><h2 class="section">Measurements</h2>${log.length ? `<span class="muted" style="font-size:13px">change since ${esc(shortDay(log[0].d))}</span>` : ''}</div>
+    <div class="section-row">${secHead(I.target, 'weight', 'Measurements')}${log.length ? `<span class="muted" style="font-size:13px">change since ${esc(shortDay(log[0].d))}</span>` : ''}</div>
     ${rows ? `<ul class="ms-list">${rows}</ul>${waist.length > 1 ? `<p class="list-title">Waist</p>${lineChart(waist, v => n1(v), 'Waist over time')}` : ''}` : '<p class="muted">The scale doesn’t tell the whole story. If your waist shrinks while your weight stays put, you’re losing fat and building muscle.</p>'}
     <button type="button" class="btn block" data-act="measure">${I.plus} Add measurements</button>
   </section>`;
@@ -2842,7 +2856,7 @@ async function photoBlob(file, max = 1280) {
 function photosPanel() {
   setTimeout(fillPhotos, 0);
   return `<section class="panel tight" aria-label="Progress photos">
-    <div class="section-row"><h2 class="section">Progress photos</h2><span class="muted" style="font-size:13px">only on this phone</span></div>
+    <div class="section-row">${secHead(I.camera, 'weight', 'Progress photos')}<span class="muted" style="font-size:13px">only on this phone</span></div>
     <div id="photo-grid" class="photo-grid"><div class="state"><span class="spinner"></span></div></div>
     <input type="file" id="photo-file" accept="image/*" hidden>
     <div class="row-btns"><button type="button" class="btn primary" data-act="photo-add">${I.camera} ${lbl('Add photo', 'Add')}</button><button type="button" class="btn" data-act="photo-compare" id="photo-cmp" disabled>${lbl('Compare', 'Compare')}</button></div>
@@ -2949,9 +2963,9 @@ function viewStrength() {
   return `<header class="top bar"><button type="button" class="icon-btn" data-act="back" data-fallback="#/train" aria-label="Back">${I.chevL}</button></header>
   <div><p class="eyebrow">Your training over time</p><h1 class="h-display">Strength</h1></div>
   <section class="panel tight" aria-label="Calendar">${calendarHTML()}</section>
-  <section class="panel tight" aria-label="Sets per week"><h2 class="section">Sets per week</h2>${weeklySetsChart()}</section>
+  <section class="panel tight" aria-label="Sets per week">${secHead(I.chart, 'workout', 'Sets per week')}${weeklySetsChart()}</section>
   <section class="panel tight" aria-label="Lifts">
-    <div class="section-row"><h2 class="section">Lifts</h2><span class="muted" style="font-size:13px">estimated 1-rep max</span></div>
+    <div class="section-row">${secHead(I.dumbbell, 'workout', 'Lifts')}<span class="muted" style="font-size:13px">estimated 1-rep max</span></div>
     ${lifts.length ? `<ul class="lift-list">${lifts.map(l => {
       const prev = l.h.length > 1 ? l.h[l.h.length - 2].e : null, d = prev ? l.last.e - prev : 0;
       return `<li><a href="#/ex/${encodeURIComponent(l.ex)}#progress"><span><b>${esc(exName(l.ex))}</b><small class="muted">best ${fw(l.best)} · ${plural(l.h.length, 'session')}</small></span><span class="num">${fw(l.last.e)}${prev ? `<small class="${d > 0 ? 'up' : d < 0 ? 'down' : ''}">${d > 0 ? '▲' : d < 0 ? '▼' : '='}</small>` : ''}</span>${I.chevR}</a></li>`;
@@ -2963,7 +2977,7 @@ function exProgressPanel(id) {
   const u = wUnit(), fw = kg => `${wN(roundW(toW(kg)))} ${u}`;
   const best = h.reduce((a, x) => (x.e > a.e ? x : a));
   return `<section class="panel tight" id="progress" aria-label="Your progress">
-    <div class="section-row"><h2 class="section">Your progress</h2><span class="muted" style="font-size:13px">${plural(h.length, 'session')}</span></div>
+    <div class="section-row">${secHead(I.chart, 'workout', 'Your progress')}<span class="muted" style="font-size:13px">${plural(h.length, 'session')}</span></div>
     <dl class="eq" style="border-top:0;padding-top:0"><div><dt>Best 1RM (est.)</dt><dd>${fw(best.e)}</dd></div><div class="op">·</div><div><dt>Best set</dt><dd style="font-size:18px">${best.best.reps} × ${fw(best.best.w)}</dd></div></dl>
     ${lineChart(h.map(x => ({ d: x.d, v: toW(x.e) })), v => wN(Math.round(v)), 'Estimated 1-rep max over time') || '<p class="hint">Do this exercise again to see a chart.</p>'}
     <ul class="sum-list">${h.slice(-5).reverse().map(x => `<li><strong>${esc(shortDay(x.d))}</strong><span>${x.sets} sets · best ${x.best.reps} × ${fw(x.best.w)} · volume ${n0(toW(x.vol))} ${u}</span></li>`).join('')}</ul>
@@ -3013,7 +3027,7 @@ function recoveryPanel() {
   if (!S.workouts.some(w => (w.sets || []).length)) return '';
   const load = muscleLoad(), tired = MUSCLE_ORDER.filter(m => (load[m] || 0) >= 2.5), fresh = MUSCLE_ORDER.filter(m => !(load[m] > 0.5));
   return `<section class="panel tight" aria-label="Muscle recovery">
-    <div class="section-row"><h2 class="section">Muscle recovery</h2><a class="link" href="#/strength" style="font-size:14px">Strength</a></div>
+    <div class="section-row">${secHead(I.user, 'workout', 'Muscle recovery')}<a class="link" href="#/strength" style="font-size:14px">Strength</a></div>
     ${bodyMapSVG(load)}
     <p class="rec-key"><span><i class="rec-fresh"></i>Fresh</span><span><i class="rec-ok"></i>Nearly</span><span><i class="rec-mid"></i>Recovering</span><span><i class="rec-tired"></i>Worked hard</span></p>
     <p class="hint">${tired.length ? `Give <b>${esc(tired.slice(0, 4).join(', '))}</b> a rest today. ` : ''}${fresh.length ? `Ready to train: ${esc(fresh.slice(0, 5).join(', '))}.` : 'Everything has had a workout recently. A rest day or light cardio is a good idea.'}</p>
@@ -3233,12 +3247,12 @@ function habitStreak(id) { let k = dkey(), n = 0; if (!habitDone(id, k)) k = add
 function habitsCard() {
   const H = habitState(), k = dkey();
   if (!H.list.length) return H.dismissed ? '' : `<section class="panel tight" aria-label="Habits">
-    <div class="section-row"><h2 class="section">Daily habits</h2></div>
+    <div class="section-row">${secHead(I.check, 'protein', 'Daily habits')}</div>
     <p class="muted" style="font-size:15px">Small daily wins add up. Pick a few habits, like veg with every meal or a 20-minute walk, and tick them off.</p>
     <div class="row-btns"><button type="button" class="btn primary" data-act="habits">${I.plus} ${lbl('Choose habits', 'Choose')}</button><button type="button" class="btn ghost" data-act="habits-later">Not now</button></div></section>`;
   const done = H.list.filter(h => habitDone(h.id, k)).length;
   return `<section class="panel tight" aria-label="Habits">
-    <div class="section-row"><h2 class="section">Daily habits</h2><span class="muted num" style="font-size:13px">${done} of ${H.list.length} today · <button type="button" class="link" data-act="habits" style="font-size:13px;padding:0">Edit</button></span></div>
+    <div class="section-row">${secHead(I.check, 'protein', 'Daily habits')}<span class="muted num" style="font-size:13px">${done} of ${H.list.length} today · <button type="button" class="link" data-act="habits" style="font-size:13px;padding:0">Edit</button></span></div>
     <ul class="habit-list">${H.list.map(h => { const on = habitDone(h.id, k), sk = habitStreak(h.id); return `<li><button type="button" class="habit ${on ? 'on' : ''}" data-act="habit" data-id="${esc(h.id)}" aria-pressed="${on}"><span class="hb-box">${on ? I.check : ''}</span><span class="hb-name">${esc(h.name)}</span>${sk >= 2 ? `<span class="hb-streak">${I.bolt}${sk}</span>` : ''}</button></li>`; }).join('')}</ul>
   </section>`;
 }
@@ -3752,7 +3766,7 @@ function openSavedMeal(sm, ctx) {
 function aiPanel() {
   const has = !!aiKey(), model = (S.settings.aiModels || [])[0];
   return `<section class="panel" id="ai" aria-label="Photo and voice logging">
-    <h2 class="section">Photo &amp; voice logging</h2>
+    ${secHead(I.sparkle, 'accent', 'Photo &amp; voice logging')}
     ${has ? `<div class="notice ok">${I.check}<div><strong>Free AI is set up</strong><p>Snap a meal, Say what you ate and the coach are ready${model ? ` (using <span id="ai-model">${esc(model)}</span>)` : ''}. Photos and text you send go to Google to be analysed.</p></div></div>
       <button type="button" class="btn primary block" data-act="coach">${I.chat} Ask your coach</button>
       <div class="row-btns"><button type="button" class="btn" data-act="ai-test">Check it works</button><button type="button" class="btn danger" data-act="ai-remove">${I.trash} Remove key</button></div>
@@ -3820,7 +3834,7 @@ function usualsCard() {
   USUALS = { meal, usual, top };
   if (!usual && !top.length) return '';
   return `<section class="panel tight" aria-label="Your usuals">
-    <div class="section-row"><h2 class="section">Your usual ${esc(MEAL_NAME[meal].toLowerCase())}</h2><span class="muted" style="font-size:13px">One tap to log</span></div>
+    <div class="section-row">${secHead(I.repeat, 'kcal', `Your usual ${esc(MEAL_NAME[meal].toLowerCase())}`)}<span class="muted" style="font-size:13px">One tap to log</span></div>
     ${usual ? `<div class="usual">
       <div class="usual-text"><strong>${esc(usual.list.map(e => e.name).join(', '))}</strong><span class="muted">${plural(usual.count, 'time')} in the last 4 weeks · ${fmtE(mealSum(usual.list))} ${eUnit()}</span></div>
       <button type="button" class="btn primary" data-act="usual-log">${I.plus} Log</button></div>` : ''}
@@ -4140,16 +4154,19 @@ function viewProgress() {
   return `
   <header class="top bar"><button type="button" class="icon-btn" data-act="back" data-fallback="#/me" aria-label="Back">${I.chevL}</button></header>
   <div><p class="eyebrow">Weight &amp; goal</p><h1 class="h-display">Progress</h1></div>
-  <section class="panel tight" aria-label="Weight">
-    ${tr ? `<dl class="eq" style="border-top:0;padding-top:0">
-      <div><dt>Trend</dt><dd>${wN(roundW10(toW(tr.trend)))}<small style="font-size:14px"> ${wUnit()}</small></dd></div><div class="op" aria-hidden="true">·</div>
-      <div><dt>This week</dt><dd>${chg(tr.week)}</dd></div><div class="op" aria-hidden="true">·</div>
-      <div><dt>Since start</dt><dd>${chg(tr.trend - tr.first.kg)}</dd></div></dl>
-      ${weightChart() || '<p class="hint">Log your weight on a few more days to see the chart.</p>'}` : '<p class="muted">No weigh-ins yet. Log your weight a few times a week; the trend line smooths out day-to-day ups and downs.</p>'}
+  <div class="cols"><div class="col-a">
+  <section class="panel tight weight-hero" aria-label="Weight">
+    ${tr ? `<div class="wh-top">
+        <div class="pl pl-v"><span class="pl-lab">Trend weight</span><span class="pl-val pl-big num">${wN(roundW10(toW(tr.trend)))}<small> ${wUnit()}</small></span></div>
+        <div class="wh-side">
+          <div class="pl pl-n"><span class="pl-lab">This week</span><span class="pl-val num">${chg(tr.week)}<small> ${wUnit()}</small></span></div>
+          <div class="pl pl-n"><span class="pl-lab">Since start</span><span class="pl-val num">${chg(tr.trend - tr.first.kg)}<small> ${wUnit()}</small></span></div>
+        </div></div>
+      ${weightChart() || '<p class="hint">Log your weight on a few more days to see the chart.</p>'}` : `${secHead(I.chart, 'weight', 'Weight')}<p class="muted">No weigh-ins yet. Log your weight a few times a week; the trend line smooths out day-to-day ups and downs.</p>`}
     <button type="button" class="btn primary block" data-act="weight">${I.plus} Log today’s weight</button>
   </section>
   <section class="panel tight" aria-label="Smart goal">
-    <h2 class="section">Smart goal</h2>
+    ${secHead(I.target, 'weight', 'Smart goal')}
     <div class="pref"><span class="pref-label">I want to</span><div class="seg wrap4">${[[-0.5, 'Lose ½ kg a week', 'Lose ½ kg/wk'], [-0.25, 'Lose ¼ kg a week', 'Lose ¼ kg/wk'], [0, 'Stay the same', 'Stay the same'], [0.25, 'Gain ¼ kg a week', 'Gain ¼ kg/wk']].map(([v, l, s]) => `<button type="button" class="${Number(rate) === v ? 'on' : ''}" data-act="pref" data-k="rate" data-v="${v}">${lbl(l, s)}</button>`).join('')}</div></div>
     ${sg.ready ? (() => {
       const diff = sg.suggested - st.kcal;
@@ -4159,10 +4176,12 @@ function viewProgress() {
         : `<p class="hint">Your current goal of ${fmtE(st.kcal)} ${eUnit()} fits what you picked. Keep going.</p>`}`;
     })() : `<p class="hint">Your goal will adjust itself once there’s enough to go on. ${esc(sg.need)} It works best if you log most of what you eat.</p>`}
   </section>
+  </div><div class="col-b">
   ${bodyPanel()}
   ${photosPanel()}
-  ${ws.length ? `<section class="panel tight" aria-label="Weigh-ins"><h2 class="section">Weigh-ins</h2>
-    <ul class="sum-list">${ws.slice(0, 30).map(w => `<li class="w-row"><span><strong class="num">${fmtW(w.kg)}</strong> <span class="muted">${esc(w.d === dkey() ? 'Today' : shortDay(w.d))}</span></span><button type="button" class="icon-btn" data-act="weight-del" data-d="${w.d}" aria-label="Delete weigh-in">${I.trash}</button></li>`).join('')}</ul></section>` : ''}`;
+  ${ws.length ? `<section class="panel tight" aria-label="Weigh-ins">${secHead(I.clock, 'weight', 'Weigh-ins')}
+    <ul class="sum-list">${ws.slice(0, 30).map(w => `<li class="w-row"><span><strong class="num">${fmtW(w.kg)}</strong> <span class="muted">${esc(w.d === dkey() ? 'Today' : shortDay(w.d))}</span></span><button type="button" class="icon-btn" data-act="weight-del" data-d="${w.d}" aria-label="Delete weigh-in">${I.trash}</button></li>`).join('')}</ul></section>` : ''}
+  </div></div>`;
 }
 
 /* ---------- workout schedule & "try heavier" ---------- */
@@ -4177,10 +4196,11 @@ function nextScheduled() {
 function workoutsThisWeek() { const mon = mondayOf(dkey()); return S.workouts.filter(w => dkey(new Date(w.start)) >= mon).length; }
 function weekTarget() { return hasSchedule() ? Object.values(schedule()).filter(Boolean).length : 3; }
 function scheduleStrip() {
-  const sc = schedule(), todayWd = new Date().getDay();
+  const sc = schedule(), todayWd = new Date().getDay(), mon = mondayOf(dkey());
+  const trained = new Set(S.workouts.filter(w => dkey(new Date(w.start)) >= mon).map(w => new Date(w.start).getDay()));
   return `<div class="sched" role="list">${DAYS.map(([d, wd]) => {
-    const r = S.routines.find(x => x.id === sc[wd]);
-    return `<button type="button" role="listitem" class="sched-day ${r ? 'on' : ''} ${wd === todayWd ? 'today' : ''}" data-act="sched-day" data-wd="${wd}" aria-label="${d}: ${r ? esc(r.name) : 'rest'}"><b>${d}</b><span>${r ? esc(r.name.replace(/^(Gym|Home|Dumbbell)\s+/, '')) : 'Rest'}</span></button>`;
+    const r = S.routines.find(x => x.id === sc[wd]), did = trained.has(wd);
+    return `<button type="button" role="listitem" class="sched-day ${r ? 'on' : ''} ${wd === todayWd ? 'today' : ''} ${did ? 'did' : ''}" data-act="sched-day" data-wd="${wd}" aria-label="${d}: ${r ? esc(r.name) : 'rest'}${did ? ', trained' : ''}"><b>${d}</b><span>${did ? I.check : r ? esc(r.name.replace(/^(Gym|Home|Dumbbell)\s+/, '')) : 'Rest'}</span></button>`;
   }).join('')}</div>`;
 }
 function openSchedDay(wd) {
@@ -4378,26 +4398,38 @@ function viewSummary() {
   const mon = mondayOf(dkey());
   const weeks = [mon, addDays(mon, -7), addDays(mon, -14), addDays(mon, -21)].map(weekStats);
   const st = S.settings;
-  const card = (s, i) => `<section class="panel tight" aria-label="Week of ${esc(shortDay(s.mon))}">
+  const card = (s, i) => `<section class="sum-week" aria-label="Week of ${esc(shortDay(s.mon))}">
     <div class="plan-head"><strong>${i === 0 ? 'This week so far' : i === 1 ? 'Last week' : `Week of ${esc(fromKey(s.mon).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }))}`}</strong><span class="muted" style="font-size:13px">${esc(fromKey(s.mon).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }))} – ${esc(fromKey(s.end).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }))}</span></div>
-    <dl class="stats">
-      <div><dt>Days logged</dt><dd>${s.logged}<small style="font-size:16px"> / 7</small></dd></div>
-      <div><dt>Workouts</dt><dd>${s.workouts}<small style="font-size:16px"> · ${s.sets} sets</small></dd></div>
-      <div><dt>Avg ${eUnit()}</dt><dd>${s.logged ? fmtE(s.avgKcal) : '–'}</dd></div>
-      <div><dt>Avg protein</dt><dd>${s.logged ? `${n0(s.avgP)}<small style="font-size:16px"> g</small>` : '–'}</dd></div>
-      <div><dt>On target</dt><dd>${s.onTarget}<small style="font-size:16px"> days</small></dd></div>
-      <div><dt>Weight</dt><dd>${s.wChange == null ? '–' : `${s.wChange > 0 ? '+' : s.wChange < 0 ? '−' : ''}${n1(Math.abs(roundW10(toW(s.wChange))))}<small style="font-size:16px"> ${wUnit()}</small>`}</dd></div>
-    </dl>
+    <div class="stats stile-grid">
+      ${statTile('kcal', 'Days logged', `${s.logged}<small> / 7</small>`)}
+      ${statTile('workout', 'Workouts', s.workouts, '', `${plural(s.sets, 'set')}`)}
+      ${statTile('kcal', `Avg ${eUnit()}`, s.logged ? fmtE(s.avgKcal) : '–')}
+      ${statTile('protein', 'Avg protein', s.logged ? n0(s.avgP) : '–', s.logged ? 'g' : '')}
+      ${statTile('kcal', 'On target', s.onTarget, plural(s.onTarget, 'day').replace(/^\d+ /, ''))}
+      ${statTile('weight', 'Weight', s.wChange == null ? '–' : `${s.wChange > 0 ? '+' : s.wChange < 0 ? '−' : ''}${n1(Math.abs(roundW10(toW(s.wChange))))}`, s.wChange == null ? '' : wUnit())}
+    </div>
     ${i === 1 && s.logged ? `<p class="hint">${s.avgKcal > st.kcal * 1.1 ? `You averaged ${fmtE(s.avgKcal - st.kcal)} ${eUnit()} over your goal.` : s.avgKcal < st.kcal * 0.9 ? `You averaged ${fmtE(st.kcal - s.avgKcal)} ${eUnit()} under your goal.` : 'You stayed close to your goal on average. Nice.'} ${s.avgP < st.protein * 0.85 ? 'Protein was a bit low; meals marked “High protein” in Meal ideas help.' : ''}</p>` : ''}
   </section>`;
   return `<header class="top bar"><button type="button" class="icon-btn" data-act="back" data-fallback="#/me" aria-label="Back">${I.chevL}</button></header>
   <div><p class="eyebrow">Food, workouts and weight</p><h1 class="h-display">Weekly summary</h1></div>
-  <div class="chips"><span class="chip on">${I.repeat} ${plural(logStreak(), 'day')} logging streak</span><span class="chip">${I.dumbbell} ${workoutsThisWeek()} of ${weekTarget()} workouts this week</span></div>
+  <div class="stile-grid sum-top">
+    ${statTile('workout', `${I.flame} Streak`, logStreak(), plural(logStreak(), 'day').replace(/^\d+ /, ''))}
+    ${statTile('workout', `${I.dumbbell} This week`, `${workoutsThisWeek()}<small> / ${weekTarget()}</small>`, '', 'workouts')}
+  </div>
   ${weeks.map(card).join('')}`;
 }
 
 /* ---------- the new Today screen ---------- */
-let drawRings = true;
+let lastRendered = '';
+const firstVisit = name => lastRendered !== name;   // true when arriving from another page: the rings draw in
+const MACRO = { p: ['Protein', 'protein'], c: ['Carbs', 'carbs'], f: ['Fat', 'fat'] };
+const macroTile = (m, v, g = S.settings[MACRO[m][1]]) => `<section class="mtile m-${m}" aria-label="${MACRO[m][0]}"><div class="mt-head"><span>${MACRO[m][0]}</span><span class="num">${n0(g)} g</span></div>
+  <div class="mt-val num">${n0(v)}<small class="mt-of"> / ${n0(g)}</small><small> g</small></div><div class="mbar" role="img" aria-label="${MACRO[m][0]}: ${n0(v)} of ${n0(g)} grams"><i style="width:${g ? clamp(v / g * 100, 0, 100) : 0}%"></i></div></section>`;
+const macroTiles = (t, keys = 'pcf') => `<div class="macro-tiles n${keys.length}">${[...keys].map(m => macroTile(m, t[m])).join('')}</div>`;
+// section heading with a small colour badge, like iOS Settings; cat = kcal | protein | water | workout | weight | fast | accent | grey
+const secHead = (icon, cat, title) => `<h2 class="section sec-ico"><span class="ico-badge c-${cat}" aria-hidden="true">${icon}</span>${title}</h2>`;
+// one stat tile: coloured label, heavy rounded number
+const statTile = (cat, label, val, unit = '', sub = '') => `<div class="stile c-${cat}"><span class="st-lab">${label}</span><span class="st-val num">${val}${unit ? `<small> ${unit}</small>` : ''}</span>${sub ? `<span class="st-sub">${sub}</span>` : ''}</div>`;
 function pulseRings(rings, animate) {
   // rings: [{ id, pct, label }] outer to inner; gradient ids live in index.html
   const size = 150, stroke = 16, gap = 3;
@@ -4409,21 +4441,13 @@ function pulseRings(rings, animate) {
   }).join('');
   return `<svg class="pulse-svg" viewBox="0 0 ${size} ${size}" role="img" aria-label="${esc(rings.map(g => g.label).join(', '))}">${arcs}</svg>`;
 }
-function viewToday() {
-  const k = dkey(), t = dayTotals(k), st = S.settings, goal = goalOn(k);
-  const left = goal - t.kcal;
-  const today = new Date();
+function nextWorkoutRow() {
+  const k = dkey();
   const doneToday = S.workouts.filter(w => dkey(new Date(w.start)) === k);
   const last = S.workouts[0];
   let next = S.routines[0];
   if (last) { const i = S.routines.findIndex(r => r.id === last.rid); if (i >= 0) next = S.routines[(i + 1) % S.routines.length]; }
   const sched = hasSchedule(), todays = sched ? scheduledFor(k) : null;
-  const setup = !st.goalsSet ? `
-    <div class="notice">${I.target}<div><strong>Set your daily goal</strong><p>${fmtE(st.kcal)} ${eUnit()} is a starting placeholder. Put in your own numbers, or let RepPlate estimate them.</p></div>
-      <div class="actions"><a class="btn sm primary" href="#/me">Set goals</a></div></div>` : '';
-  const install = (!isStandalone() && !st.installDismissed) ? `
-    <div class="notice">${I.phone}<div><strong>Put RepPlate on your home screen</strong><p>${esc(installHowTo())}</p></div>
-      <div class="actions">${installPrompt ? '<button type="button" class="btn sm primary" data-act="install">Install</button>' : ''}<button type="button" class="btn sm" data-act="dismiss-install">Got it</button></div></div>` : '';
   const minsOf = r => `${plural(r.items.length, 'exercise')} · ${routineMinutes(r)} min`;
   const card = (lab, title, sub, r, cls = '') => `<div class="wk-row ${cls}"><div class="wk-text"><span class="pw-lab">${lab}</span><strong>${title}</strong><span class="muted">${sub}</span></div>
       ${r ? `<button type="button" class="play" data-act="start" data-id="${esc(r.id)}" aria-label="Start ${esc(r.name)}">${I.playF}</button>` : ''}</div>`;
@@ -4441,16 +4465,27 @@ function viewToday() {
   } else {
     workout = `<p class="muted">You don’t have any routines yet.</p><a class="btn primary block" href="#/edit/new">${I.plus} Make a routine</a>`;
   }
+  return workout;
+}
+function viewToday() {
+  const k = dkey(), t = dayTotals(k), st = S.settings, goal = goalOn(k);
+  const left = goal - t.kcal;
+  const today = new Date();
+  const setup = !st.goalsSet ? `
+    <div class="notice">${I.target}<div><strong>Set your daily goal</strong><p>${fmtE(st.kcal)} ${eUnit()} is a starting placeholder. Put in your own numbers, or let RepPlate estimate them.</p></div>
+      <div class="actions"><a class="btn sm primary" href="#/me">Set goals</a></div></div>` : '';
+  const install = (!isStandalone() && !st.installDismissed) ? `
+    <div class="notice">${I.phone}<div><strong>Put RepPlate on your home screen</strong><p>${esc(installHowTo())}</p></div>
+      <div class="actions">${installPrompt ? '<button type="button" class="btn sm primary" data-act="install">Install</button>' : ''}<button type="button" class="btn sm" data-act="dismiss-install">Got it</button></div></div>` : '';
+  const workout = nextWorkoutRow();
   const streak = logStreak(), wk = workoutsThisWeek(), bonus = bonusOn(k);
   const water = waterToday(), wGoal = st.waterGoal || 8;
-  const animate = drawRings; drawRings = false;
+  const animate = firstVisit('today');
   const rings = pulseRings([
     { id: 'k', pct: t.kcal / (goal || 1), label: `Calories: ${fmtE(t.kcal)} of ${fmtE(goal)} ${eUnit()} eaten` },
     { id: 'p', pct: t.p / (st.protein || 1), label: `Protein: ${n0(t.p)} of ${n0(st.protein)} g` },
     { id: 'w', pct: water / wGoal, label: `Water: ${water} of ${wGoal} glasses` },
   ], animate);
-  const mtile = (m, label, v, g) => `<section class="mtile m-${m}" aria-label="${label}"><div class="mt-head"><span>${label}</span><span class="num">${n0(g)} g</span></div>
-      <div class="mt-val num">${n0(v)}<small> g</small></div><div class="mbar" role="img" aria-label="${label}: ${n0(v)} of ${n0(g)} grams"><i style="width:${g ? clamp(v / g * 100, 0, 100) : 0}%"></i></div></section>`;
   return `
   <header class="top"><div><p class="eyebrow date">${esc(today.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' }))}</p><h1 class="h-display">Today</h1></div>
     <div class="top-acts">${streak >= 2 ? `<a class="streak" href="#/summary" aria-label="${streak}-day logging streak">${I.flame}<b class="num">${streak}</b></a>` : ''}<button type="button" class="icon-btn coach-btn" data-act="coach" aria-label="Ask your coach">${I.chat}</button></div></header>
@@ -4475,9 +4510,9 @@ function viewToday() {
       <button type="button" class="round-btn" data-act="say" aria-label="Say what you ate">${I.mic}</button>
     </div>
   </section>
-  <div class="macro-tiles">${mtile('c', 'Carbs', t.c, st.carbs)}${mtile('f', 'Fat', t.f, st.fat)}</div>
+  ${macroTiles(t, 'cf')}
   <section class="panel tight week" aria-label="Last 7 days">
-    <div class="section-row"><h2 class="section">Last 7 days</h2><span class="muted num" style="font-size:13px">${eUnit()} eaten</span></div>
+    <div class="section-row">${secHead(I.chart, 'kcal', 'Last 7 days')}<span class="muted num" style="font-size:13px">${eUnit()} eaten</span></div>
     ${weekChart()}
     <div class="legend"><span><i class="ln"></i>Goal ${fmtE(st.kcal)} ${eUnit()}</span><span><i class="dt"></i>Workout</span></div>
   </section>
@@ -4713,29 +4748,45 @@ function viewTrain() {
         <div class="tags">${routineMuscles(r).slice(0, 4).map(m => `<span class="tag">${esc(m)}</span>`).join('')}</div>
         ${last ? `<p class="r-last">Last done ${ago(last.start)}</p>` : ''}
       </a>
-      <button type="button" class="play" data-act="start" data-id="${esc(r.id)}" aria-label="Start ${esc(r.name)}">${I.play}</button>
+      <button type="button" class="play" data-act="start" data-id="${esc(r.id)}" aria-label="Start ${esc(r.name)}">${I.playF}</button>
     </li>`;
   }).join('');
+  const mon = mondayOf(dkey()), wos = S.workouts.filter(w => dkey(new Date(w.start)) >= mon);
+  const done = wos.length, target = weekTarget();
+  const sets = wos.reduce((n, w) => n + w.sets.length, 0), mins = Math.round(wos.reduce((n, w) => n + (w.end - w.start), 0) / 60000);
+  const ring = pulseRings([{ id: 'o', pct: done / (target || 1), label: `Workouts: ${done} of ${target} this week` }], firstVisit('train'));
   return `
-  <header class="top"><div><p class="eyebrow">Workouts</p><h1 class="h-display">Train</h1></div></header>
+  <header class="top"><div><p class="eyebrow date">This week · ${done} of ${target} done</p><h1 class="h-display">Train</h1></div></header>
   ${trainTabs('r')}
   ${resumeBanner()}
-  <section class="panel tight" aria-label="My training week">
-    <div class="section-row"><h2 class="section">My week</h2><span class="muted num" style="font-size:13px">${workoutsThisWeek()} of ${weekTarget()} done</span></div>
-    ${scheduleStrip()}
-    <p class="hint">${hasSchedule() ? 'Tap a day to change it. Today’s workout shows on the Today screen.' : 'Tap the days you train and pick a routine for each. Today’s workout then shows on the Today screen.'}</p>
+  <div class="cols"><div class="col-a">
+  <section class="panel pulse-hero solo" aria-label="My training week">
+    <div class="pulse-rings">${ring}</div>
+    <div class="pulse-legend">
+      <div class="pl pl-o"><span class="pl-lab">${lbl('Workouts this week', 'This week')}</span><span class="pl-val pl-big num">${done}<small> / ${target}</small></span></div>
+      <div class="pl pl-n"><span class="pl-lab">Sets</span><span class="pl-val num">${sets}</span></div>
+      <div class="pl pl-n"><span class="pl-lab">Time</span><span class="pl-val num">${mins >= 60 ? `${Math.floor(mins / 60)}<small> h </small>${mins % 60}` : mins}<small> min</small></span></div>
+    </div>
+    <div class="hero-foot">
+      ${scheduleStrip()}
+      <p class="hint">${hasSchedule() ? 'Tap a day to change it. Today’s workout shows on the Today screen.' : 'Tap the days you train and pick a routine for each. Today’s workout then shows on the Today screen.'}</p>
+    </div>
   </section>
-  ${programPanel()}
-  ${recoveryPanel()}
+  <section class="panel pulse-workout" aria-label="Workout">${nextWorkoutRow()}</section>
   <div class="tools">
-    <button type="button" class="btn tool primary" data-act="quick">${I.bolt}<span>${lbl('Quick workout', 'Quick')}</span></button>
+    <button type="button" class="btn tool" data-act="quick">${I.bolt}<span>${lbl('Quick workout', 'Quick')}</span></button>
     <a class="btn tool" href="#/programs">${I.target}<span>Programs</span></a>
     <button type="button" class="btn tool" data-act="hiit">${I.clock}<span>${lbl('Interval timer', 'Intervals')}</span></button>
     <button type="button" class="btn tool" data-act="plates">${I.dumbbell}<span>${lbl('Plate calculator', 'Plates')}</span></button>
   </div>
+  ${programPanel()}
+  ${recoveryPanel()}
+  </div><div class="col-b">
+  <div class="section-row list-head"><h2 class="section">Your routines</h2><span class="muted num" style="font-size:13px">${S.routines.length}</span></div>
   ${S.routines.length ? `<ul class="routines">${cards}</ul>` : `<div class="empty"><strong>No routines yet</strong><span>Make one from the exercise library.</span></div>`}
   <a class="btn block" href="#/edit/new">${I.plus} New routine</a>
-  ${S.workouts.length ? `<div class="row-btns"><a class="btn" href="#/strength">${I.target} Strength</a><a class="btn" href="#/me#history">${I.clock} History</a></div>` : ''}`;
+  ${S.workouts.length ? `<div class="row-btns"><a class="btn" href="#/strength">${I.chart} Strength</a><a class="btn" href="#/me#history">${I.clock} History</a></div>` : ''}
+  </div></div>`;
 }
 
 function viewLibrary() {
@@ -4805,9 +4856,9 @@ function viewExercise(id) {
     : `<div class="row-btns"><button type="button" class="btn primary" data-act="ex-add" data-id="${esc(id)}">${I.plus} Add to routine</button>
        <a class="btn" href="#/ex/${encodeURIComponent(id)}#video">${I.video} ${v ? 'Your video' : 'Add a video'}</a></div>`}
   ${exProgressPanel(id)}
-  <section class="panel tight"><h2 class="section">How to do it</h2><ol class="steps">${e.t.map(s => `<li>${esc(s)}</li>`).join('')}</ol></section>
+  <section class="panel tight">${secHead(I.check, 'workout', 'How to do it')}<ol class="steps">${e.t.map(s => `<li>${esc(s)}</li>`).join('')}</ol></section>
   <section class="panel tight" id="video" aria-label="Video">
-    <h2 class="section">Video</h2>
+    ${secHead(I.video, 'workout', 'Video')}
     ${v ? `${videoBox(v, e.n, true)}
       <div class="row-btns"><a class="btn" href="https://www.youtube.com/watch?v=${esc(v.id)}${v.start ? `&t=${v.start}s` : ''}" target="_blank" rel="noopener">Open in YouTube</a><button type="button" class="btn danger" data-act="yt-remove" data-id="${esc(id)}">${I.trash} Remove</button></div>
       <p class="hint">In workout mode this plays on repeat with the sound off, while the coach counts your reps out loud.</p>`
@@ -4815,7 +4866,7 @@ function viewExercise(id) {
       <a class="btn" href="https://www.youtube.com/results?search_query=${encodeURIComponent(e.n + ' exercise how to')}" target="_blank" rel="noopener">${I.video} Find one on YouTube</a>
       <form class="search-form" data-form="yt" data-ex="${esc(id)}"><input class="input" id="yt-url" inputmode="url" autocomplete="off" placeholder="Paste a YouTube link" aria-label="YouTube link"><button class="btn primary">Save</button></form>`}
   </section>
-  ${hist.length ? `<section class="panel tight"><h2 class="section">Your recent sets</h2><ul class="sum-list">${hist.map(h => `<li><strong>${esc(new Date(h.w.start).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }))} · ${esc(h.w.name)}</strong><span>${h.sets.map(fmtSet).join(', ')}</span></li>`).join('')}</ul></section>` : ''}`;
+  ${hist.length ? `<section class="panel tight">${secHead(I.clock, 'workout', 'Your recent sets')}<ul class="sum-list">${hist.map(h => `<li><strong>${esc(new Date(h.w.start).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }))} · ${esc(h.w.name)}</strong><span>${h.sets.map(fmtSet).join(', ')}</span></li>`).join('')}</ul></section>` : ''}`;
 }
 function fmtSet(s) {
   if (s.secs) return `${s.secs} s`;
@@ -4831,7 +4882,10 @@ function viewRoutine(id) {
   return `
   <header class="top bar"><button type="button" class="icon-btn" data-act="back" data-fallback="#/train" aria-label="Back">${I.chevL}</button><span class="grow"></span><a class="btn sm" href="#/edit/${encodeURIComponent(r.id)}">${I.edit} Edit</a></header>
   <div>${r.note ? `<p class="eyebrow">${esc(r.note)}</p>` : ''}<h1 class="h-display">${esc(r.name)}</h1></div>
-  <p class="muted">${plural(r.items.length, 'exercise')} · ${plural(sets, 'set')} · about ${routineMinutes(r)} min${last ? ` · last done ${ago(last.start)}` : ''}</p>
+  <section class="panel pulse-workout routine-hero" aria-label="Routine summary">
+    <div class="rh-stats">${statTile('workout', 'Exercises', r.items.length)}${statTile('workout', 'Sets', sets)}${statTile('workout', 'Minutes', routineMinutes(r))}</div>
+    <p class="muted rh-last">${last ? `Last done ${ago(last.start)}` : 'Not done yet'}</p>
+  </section>
   ${resumeBanner()}
   ${r.items.length ? `<button type="button" class="btn primary xl block" data-act="start" data-id="${esc(r.id)}">${I.play} Start workout</button>
   <div class="seg" role="group" aria-label="Workout style"><button type="button" class="${S.settings.guided ? 'on' : ''}" data-act="pref" data-k="guided" data-v="true">${lbl('Coach counts reps', 'Coach counts')}</button><button type="button" class="${S.settings.guided ? '' : 'on'}" data-act="pref" data-k="guided" data-v="false">${lbl('I tap when done', 'I tap')}</button></div>` : ''}
@@ -5319,18 +5373,19 @@ function viewMe() {
       <button type="button" class="btn sm ghost danger" data-act="hist-del" data-id="${esc(w.id)}" style="margin-bottom:10px">${I.trash} Delete</button></details>`;
   }).join('');
   return `
-  <header class="top"><div><p class="eyebrow">Goals, settings and history</p><h1 class="h-display">Me</h1></div></header>
+  <header class="top"><div><p class="eyebrow date">Goals, settings and history</p><h1 class="h-display">Me</h1></div></header>
+  <div class="cols"><div class="col-a">
   <section class="panel" id="goals" aria-label="Daily goals">
-    <h2 class="section">Daily goals</h2>
+    ${secHead(I.target, 'kcal', 'Daily goals')}
     <form class="form" data-form="goals">
-      <label class="field"><span>Energy (${eUnit()} per day)</span><input class="input num" id="g-kcal" inputmode="numeric" value="${Math.round(toE(st.kcal))}"></label>
+      <label class="field gfield g-k"><span>Energy (${eUnit()} per day)</span><input class="input num" id="g-kcal" inputmode="numeric" value="${Math.round(toE(st.kcal))}"></label>
       <p class="hint tdee-line" id="g-tdee">${esc(goalVsTdee(st.kcal)) || 'Not sure what to aim for? Open the TDEE &amp; goal calculator below.'}</p>
       <div class="field"><span>Macro split</span><div class="seg wrap4" id="g-style">${MACRO_STYLES.map(([v, l]) => `<button type="button" class="${st.macroStyle === v ? 'on' : ''}" data-act="macro-style" data-v="${v}">${l}</button>`).join('')}</div>
         <p class="hint" id="g-style-hint">${esc(MACRO_STYLES.find(m => m[0] === st.macroStyle)?.[2] || 'Tap one to fill in protein, carbs and fat for your energy goal, then save.')}</p></div>
-      <div class="grid3">
-        <label class="field"><span><span class="m-p"><i class="dot"></i></span>Protein g</span><input class="input num" id="g-p" inputmode="numeric" value="${st.protein}"></label>
-        <label class="field"><span><span class="m-c"><i class="dot"></i></span>Carbs g</span><input class="input num" id="g-c" inputmode="numeric" value="${st.carbs}"></label>
-        <label class="field"><span><span class="m-f"><i class="dot"></i></span>Fat g</span><input class="input num" id="g-f" inputmode="numeric" value="${st.fat}"></label>
+      <div class="grid3 gtiles">
+        <label class="field gfield g-p"><span>Protein g</span><input class="input num" id="g-p" inputmode="numeric" value="${st.protein}"></label>
+        <label class="field gfield g-c"><span>Carbs g</span><input class="input num" id="g-c" inputmode="numeric" value="${st.carbs}"></label>
+        <label class="field gfield g-f"><span>Fat g</span><input class="input num" id="g-f" inputmode="numeric" value="${st.fat}"></label>
       </div>
       <p class="hint" id="g-check"></p>
       <button class="btn primary">Save goals</button>
@@ -5359,17 +5414,22 @@ function viewMe() {
     </details>
   </section>
   <section class="panel tight" aria-label="Food needs" id="diet">
-    <h2 class="section">Food needs</h2>
+    ${secHead(I.leaf, 'protein', 'Food needs')}
     <p class="muted" style="font-size:15px">${dietActive() ? esc(dietSummary()) : 'No allergies or food rules set. Meal ideas use everything.'}</p>
     <button type="button" class="btn block" data-act="diet">${I.utensils} ${dietActive() ? 'Change food needs' : 'Allergies & foods you avoid'}</button>
   </section>
   <section class="panel tight" aria-label="Progress">
-    <h2 class="section">Progress</h2>
-    <div class="row-btns"><a class="btn" href="#/progress">${lbl('Weight & goal', 'Weight')}</a><a class="btn" href="#/summary">${lbl('Weekly summary', 'Summary')}</a></div>
+    ${secHead(I.chart, 'weight', 'Progress')}
+    <div class="nav-rows">
+      <a class="nav-row" href="#/progress"><span>Weight &amp; goal</span><span class="muted num">${(() => { const tr = weightTrend(); return tr ? `${wN(roundW10(toW(tr.trend)))} ${wUnit()}` : ''; })()}</span>${I.chevR}</a>
+      <a class="nav-row" href="#/summary"><span>Weekly summary</span><span class="muted num">${plural(logStreak(), 'day')} streak</span>${I.chevR}</a>
+      ${S.workouts.length ? `<a class="nav-row" href="#/strength"><span>Strength</span><span class="muted num">${plural(S.workouts.length, 'workout')}</span>${I.chevR}</a>` : ''}
+    </div>
   </section>
+  </div><div class="col-b">
   ${aiPanel()}
   <section class="panel" aria-label="Workout coach" id="coach">
-    <h2 class="section">Workout coach</h2>
+    ${secHead(I.volOn, 'workout', 'Workout coach')}
     ${pref('Workout style', 'guided', [[true, lbl('Coach counts reps', 'Coach counts')], [false, lbl('I tap when done', 'I tap')]])}
     ${pref('Rep speed', 'tempo', [['slow', 'Slow · 4 s'], ['normal', 'Normal · 3 s'], ['fast', 'Fast · 2 s']])}
     ${voice.ok ? `${pref('Voice counting', 'coach', [[true, 'On'], [false, 'Off']])}
@@ -5381,7 +5441,7 @@ function viewMe() {
     <p class="hint">With the coach on, workouts run hands-free: a 3-2-1 countdown, the picture moves with each rep while the coach counts, then it announces your rest and starts the next set by itself.</p>
   </section>
   <section class="panel" aria-label="Preferences">
-    <h2 class="section">Preferences</h2>
+    ${secHead(I.sliders, 'grey', 'Preferences')}
     ${pref('Energy unit', 'energy', [['kcal', 'Calories (kcal)'], ['kJ', 'Kilojoules (kJ)']])}
     ${pref('Weight unit', 'weight', [['kg', 'kg'], ['lb', 'lb']])}
     ${pref('Daily water goal', 'waterGoal', [[6, '1.5 L'], [8, '2 L'], [10, '2.5 L'], [12, '3 L']])}
@@ -5391,11 +5451,11 @@ function viewMe() {
       <select class="input" id="pref-region">${REGIONS.map(([v, l]) => `<option value="${v}" ${st.region === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
   </section>
   <section class="panel tight" id="history" aria-label="Workout history">
-    <h2 class="section">Workout history</h2>
+    ${secHead(I.clock, 'workout', 'Workout history')}
     ${hist || '<p class="muted">Finished workouts show up here.</p>'}
   </section>
   <section class="panel tight" aria-label="Your data">
-    <h2 class="section">Your data</h2>
+    ${secHead(I.shield, 'accent', 'Your data')}
     <p class="muted" style="font-size:14px">Everything stays on this phone. Only barcode numbers and food searches go to Open Food Facts. Save a backup now and then, and restore it if you change phones.</p>
     <button type="button" class="btn block" data-act="export">${I.download} ${lbl('Export &amp; calendar reminders', 'Export &amp; reminders')}</button>
     <div class="row-btns"><button type="button" class="btn" data-act="backup">${I.download} ${lbl('Save backup', 'Backup')}</button><button type="button" class="btn" data-act="restore">${I.upload} Restore</button></div>
@@ -5403,7 +5463,8 @@ function viewMe() {
     <div id="restore-confirm"></div>
     <button type="button" class="btn ghost danger" data-act="erase">${I.trash} Erase everything</button>
   </section>
-  ${!isStandalone() ? `<section class="panel tight"><h2 class="section">Install</h2><p class="muted" style="font-size:14px">${esc(installHowTo())}</p>${installPrompt ? '<button type="button" class="btn primary" data-act="install">Install RepPlate</button>' : ''}</section>` : ''}
+  ${!isStandalone() ? `<section class="panel tight">${secHead(I.phone, 'accent', 'Install')}<p class="muted" style="font-size:14px">${esc(installHowTo())}</p>${installPrompt ? '<button type="button" class="btn primary" data-act="install">Install RepPlate</button>' : ''}</section>` : ''}
+  </div></div>
   <div class="credits">
     <p>Exercise pictures and instructions: free-exercise-db (public domain).</p>
     <p>Food data: <a href="https://world.openfoodfacts.org/" target="_blank" rel="noopener">Open Food Facts</a> contributors, Open Database Licence.</p>

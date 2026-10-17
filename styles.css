@@ -1529,9 +1529,10 @@ svg.wchart, .wchart svg { overflow: visible; }
 /* ---------- phones: Today in one column, in this order ---------- */
 @media (max-width: 959px) {
   .today-cols, .today-a, .today-b { display: contents; }
-  .pulse-energy { order: 1; } .macro-tiles { order: 2; } .pulse-workout { order: 3; } #view > .mini-grid, .today-b > .mini-grid { order: 4; }
+  body[data-page="today"] .pulse-energy { order: 1; } body[data-page="today"] .macro-tiles { order: 2; } body[data-page="today"] .pulse-workout { order: 3; }
+  body[data-page="today"] #view > .mini-grid, .today-b > .mini-grid { order: 4; }
   .today-b > .panel[aria-label="Your usuals"] { order: 5; } .today-b > .panel[aria-label="Habits"] { order: 6; } .today-a > .week { order: 7; }
-  #view > .notice:last-child { order: 8; }
+  body[data-page="today"] #view > .notice:last-child { order: 8; }
 }
 @media (max-width: 359px) {
   .pulse-hero { gap: 12px 14px; padding: 16px; }
@@ -1576,3 +1577,179 @@ svg.wchart, .wchart svg { overflow: visible; }
 .wk-bars i { background: color-mix(in srgb, var(--workout) 40%, var(--fill)); }
 .wk-bars i.now { background: var(--workout); }
 .wc-grid { stroke: var(--sep); stroke-width: .6; }
+
+/* =====================================================================================================
+   PULSE EVERYWHERE — the same look on every page: one header style, ring cards, colour-coded tiles,
+   icon badges on card titles, heavy rounded numbers, the white main button, two columns on iPad.
+   Colours by kind of thing: calories pink, protein green, carbs orange, fat purple, water cyan,
+   workouts orange, body/weight purple, fasting indigo. Links and settings stay system blue.
+   ===================================================================================================== */
+/* headers: a small grey line above a big title on every page (like the date above "Today") */
+.top > div:has(> .eyebrow:not(.date) + .h-display), #view > div:has(> .eyebrow:not(.date) + .h-display) { flex-direction: column; }
+.eyebrow:not(.date):has(+ .h-display), .eyebrow.date { font: 600 13px/1.3 var(--body); text-transform: uppercase; letter-spacing: .02em; color: var(--muted); margin: 0 0 2px; }
+.h-display { font-weight: 800; }
+.datebar { align-items: flex-end; }
+.datebar .day-nav { background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; gap: 8px; margin-bottom: 0; }
+.datebar .day-nav .icon-btn { background: var(--lg); box-shadow: var(--lg-box); -webkit-backdrop-filter: var(--lg-blur); backdrop-filter: var(--lg-blur); }
+
+/* heavy rounded numbers everywhere a number is the point */
+.eq dd, .stats dd, .huge, .p-clock, .stepper input, .stepper.sm output, .plan-kcal, .e-kcal, .meal-head span, .rv-kcal, .cal-d b, .w-row strong, .ring-center .big, .wk-bars small, .st-val { font-family: var(--rounded); font-weight: 800; }
+.e-kcal { font-weight: 700; }
+
+/* section titles inside cards get a small colour badge, like iOS Settings */
+.sec-ico { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.ico-badge { width: 28px; height: 28px; flex: none; display: grid; place-items: center; border-radius: 8px; background: var(--c, var(--accent)); color: #fff; }
+.ico-badge .i { width: 17px; height: 17px; stroke-width: 2.2; }
+.ico-badge .i.fill { stroke: none; }
+.c-kcal { --c: var(--kcal); } .c-protein { --c: var(--protein); } .c-carbs { --c: var(--carbs); } .c-fat { --c: var(--fat); } .c-water { --c: var(--water); }
+.c-workout { --c: var(--workout); } .c-weight { --c: var(--weightc); } .c-fast { --c: var(--fastc); } .c-accent { --c: var(--accent); } .c-grey { --c: #8E8E93; }
+.section-row .sec-ico { flex: 1; }
+
+/* ring cards on every main page: extra ring colours and legend kinds */
+.pr-track.pr-o { stroke: var(--workout); } .pr-track.pr-v { stroke: var(--weightc); }
+.pl-o { --c: var(--workout); } .pl-v { --c: var(--weightc); } .pl-c { --c: var(--carbs); } .pl-f { --c: var(--fat); }
+.pl-n { --c: var(--muted); }
+.pl-n .pl-lab { font-weight: 500; }
+.pulse-hero.solo .pulse-legend { gap: 8px; }
+.pulse-hero .hero-foot { grid-column: 1 / -1; display: grid; gap: 8px; min-width: 0; }
+a.pulse-ideas { text-decoration: none; }
+
+/* protein / carbs / fat tiles: two on Today, three on Food and Meal ideas */
+.mtile.m-p { --c: var(--protein); }
+.macro-tiles.n3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.mt-of { display: none; }
+.macro-tiles.n3 .mt-head span:last-child { display: none; }
+.macro-tiles.n3 .mt-of { display: inline; }
+.macro-tiles.n3 .mtile { padding: 13px 14px; }
+.macro-tiles.n3 .mt-val { font-size: 21px; white-space: nowrap; }
+.macro-tiles.n3 .mt-val small { font-size: 12.5px; }
+
+/* stat tiles (summary, routine): colour label, heavy number */
+.stile-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; }
+.stile { background: var(--surface); border-radius: 22px; padding: 14px 16px; display: grid; gap: 2px; min-width: 0; }
+.st-lab { display: inline-flex; align-items: center; gap: 5px; font: 600 13px/1.25 var(--body); color: var(--c); min-width: 0; }
+.st-lab .i { width: 15px; height: 15px; flex: none; }
+.st-lab .i.fill { stroke: none; }
+.st-val { font-size: 28px; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink); }
+.st-val small { font-size: 14px; font-weight: 700; color: var(--muted); }
+.st-sub { font-size: 13px; color: var(--muted); }
+.stats.stile-grid > div { border: 0; box-shadow: none; }
+
+/* Food: each meal is one card with its title inside */
+.meal { background: var(--surface); border-radius: var(--r); overflow: hidden; gap: 0; }
+.meal-head { padding: 14px 16px 6px; align-items: baseline; }
+.meal-head h2 { font: 700 20px/1.25 var(--display); }
+.meal-head span { color: var(--kcal); font-size: 17px; }
+.meal-head span small { font: 600 13px var(--body); color: var(--kcal); opacity: .8; }
+.meal > .meal-card { background: none; border: 0; border-radius: 0; box-shadow: none; }
+.meal-card .entries li:first-child .entry::before { content: ""; position: absolute; left: 16px; right: 0; top: 0; border-top: var(--hair) solid var(--sep); }
+.e-kcal { color: var(--ink); }
+.add-row .i { color: var(--accent); }
+
+/* Train: week strip inside the ring card, days you trained in orange, routine play buttons orange */
+.sched-day { background: var(--fill); }
+.sched-day.on { background: color-mix(in srgb, var(--workout) 16%, var(--fill)); box-shadow: none; }
+.sched-day.on b { color: var(--workout); }
+.sched-day.today { background: var(--fill); box-shadow: inset 0 0 0 2px var(--workout); color: var(--ink); }
+.sched-day.today b, .sched-day.today span { color: var(--ink); }
+.sched-day.did { background: var(--workout); }
+.sched-day.did b, .sched-day.did span { color: #000; }
+.sched-day.did span .i { width: 14px; height: 14px; stroke-width: 3; }
+.routine .play, .pulse-workout .play { background: var(--workout); color: #000; }
+.routine .play .i { width: 20px; height: 20px; margin-left: 2px; }
+.routine h3 { font-weight: 800; }
+.btn.tool, .btn.tool.primary { background: var(--surface); color: var(--ink); border: 0; box-shadow: none; }
+.btn.tool .i, .btn.tool.primary .i { color: var(--workout); }
+.list-head { padding: 6px 4px 0; }
+.list-head .section { font: 700 20px/1.25 var(--display); }
+.tag.strong { background: color-mix(in srgb, var(--workout) 18%, transparent); color: var(--workout); }
+.prog-bar i, .p-bar i { background: var(--workout); }
+.cal-d.today { box-shadow: none; background: var(--workout); color: #000; }
+.cal-d.today em { background: #000 !important; }
+.cal-lift { background: var(--workout); } .cal-hiit { background: var(--kcal); } .cal-cardio { background: var(--protein); }
+.wk-bars i { background: color-mix(in srgb, var(--workout) 40%, var(--fill)); }
+
+/* routine page: a warm summary card */
+.routine-hero { gap: 6px; }
+.rh-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.rh-stats .stile { background: none; padding: 0; }
+.rh-stats .st-val { font-size: 30px; }
+.rh-last { font-size: 13px; }
+
+/* Me: goal fields as colour tiles, navigation rows */
+.gfield { background: var(--fill); border-radius: 18px; padding: 10px 14px 6px; gap: 0; }
+.gfield > span:first-child { font-weight: 600; font-size: 13px; color: var(--c); }
+.gfield .input { background: none; border: 0; box-shadow: none; padding: 0; min-height: 40px; font: 800 26px/1.1 var(--rounded); color: var(--ink); }
+.gfield .input:focus { outline: none; }
+.gfield:focus-within { box-shadow: inset 0 0 0 2px var(--c); }
+.g-k { --c: var(--kcal); } .g-p { --c: var(--protein); } .g-c { --c: var(--carbs); } .g-f { --c: var(--fat); }
+.gtiles { gap: 8px; }
+.gtiles .gfield .input { font-size: 22px; }
+.nav-rows { display: grid; margin: 0 -16px -6px; }
+.nav-row { position: relative; display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 16px; color: var(--ink); text-decoration: none; font-size: 17px; }
+.nav-row > span:first-child { flex: 1; min-width: 0; }
+.nav-row .muted { font-size: 15px; white-space: nowrap; }
+.nav-row .i { width: 14px; height: 14px; color: var(--label-3); stroke-width: 2.6; }
+.nav-row + .nav-row::before { content: ""; position: absolute; left: 16px; right: 0; top: 0; border-top: var(--hair) solid var(--sep); }
+.nav-row:active { background: var(--press); }
+
+/* Progress: weight hero */
+.weight-hero { gap: 12px; }
+.wh-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 12px; }
+.wh-side { display: flex; gap: 18px; }
+.wh-side .pl { text-align: right; }
+
+/* weekly summary: each week is a header and a grid of tiles */
+.sum-week { display: grid; gap: 10px; }
+.sum-week .plan-head { padding: 6px 4px 0; }
+.sum-week .plan-head strong { font: 700 20px/1.25 var(--display); }
+.sum-week .hint { padding: 0 4px; }
+.sum-top .st-lab { color: var(--workout); }
+
+/* plan totals on Meal ideas */
+.plan-meal .plan-head .eyebrow { color: var(--kcal); }
+.plan-kcal { color: var(--kcal); }
+
+/* older stat strips in sheets: same heavy numbers, no maths signs */
+.eq .op { visibility: hidden; width: 4px; }
+.eq dt { font-weight: 600; }
+
+/* sheets: chips and choices in the colour of what they're for */
+.sheet .seg button.on, .seg.wrap4 button.on { color: var(--ink); }
+.fast-ring .ring-fill { stroke: var(--fastc); }
+.player .ring-fill, .rest-ring .ring-fill { stroke: url(#pr-o) var(--workout); }
+.player .p-bar i { background: var(--workout); }
+
+/* ---------- tablets in landscape: two columns on the main pages, like Today ---------- */
+.cols, .col-a, .col-b { display: contents; }
+.col-a > *, .col-b > * { min-width: 0; }
+@media (min-width: 960px) {
+  body[data-page="food"] .app, body[data-page="train"] .app, body[data-page="me"] .app, body[data-page="progress"] .app { max-width: 1120px; }
+  .cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  .col-a, .col-b { display: grid; gap: 16px; min-width: 0; }
+  body[data-page="food"] .cols { grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); }
+  body[data-page="food"] .col-a { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 64px); }
+  .pulse-hero.solo .pulse-rings { width: 180px; }
+}
+@media (min-width: 700px) and (max-width: 959px) {
+  .pulse-hero.solo .pulse-rings { width: 200px; }
+}
+@media (max-width: 359px) {
+  .macro-tiles.n3 .mtile { padding: 12px 10px; }
+  .macro-tiles.n3 .mt-val { font-size: 18px; }
+  .st-val { font-size: 24px; }
+  .rh-stats .st-val { font-size: 26px; }
+}
+/* sheets and the workout player in the colour of what they're for */
+.sheet:has(#fs-body) button.on { background: color-mix(in srgb, var(--fastc) 22%, var(--fill)); color: var(--fastc); box-shadow: none; }
+.sheet:has(#w-in) .stepper button { color: var(--weightc); }
+.player .btn[data-p="done"]:not(.primary), .player .btn[data-p="g-pause"] .i { color: var(--workout); }
+.player .btn[data-p="done"]:not(.primary) { background: color-mix(in srgb, var(--workout) 18%, var(--fill)); }
+.player .btn[data-p="g-pause"] { color: var(--ink); }
+/* charts keep phone-sized text on tablets instead of stretching */
+@media (min-width: 700px) {
+  svg.wchart { max-height: 230px; width: 100%; }
+  .week > svg { max-height: 190px; width: 100%; }
+}
+.gfield > span:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 359px) { .gtiles .gfield { padding: 9px 10px 5px; } .gtiles .gfield .input { font-size: 20px; } }

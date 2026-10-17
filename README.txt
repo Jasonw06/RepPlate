@@ -67,7 +67,11 @@ WHAT IT DOES
   bar is floating Liquid Glass with a separate round scan button. Large titles move into the top
   bar as you scroll, pages slide in and out, and sheets can be pulled down to close. From the home
   screen you can swipe in from the left edge to go back. "Reduce Transparency" on the phone makes
-  the glass solid.
+  the glass solid. Every page follows the same pattern: a small grey line above a big title, a
+  ring or summary card at the top (Food: calories ring and protein/carbs/fat tiles; Train: workouts-
+  this-week ring and your week; Me: goals as colour tiles; Progress: weight trend), card titles with
+  a small colour badge, and the white button for the main action. On an iPad in landscape, Food,
+  Train, Me and Progress also show two columns.
 - Workouts: plate calculator and warm-up sets for barbell lifts; supersets and drop sets (set them
   in the routine editor); rate how hard each set felt (RPE 6–10) and the "try heavier" tip uses
   it; six ready-made programs (Beginner Full Body, 5×5 Strength, Push/Pull/Legs 6 or 3 days, Home
