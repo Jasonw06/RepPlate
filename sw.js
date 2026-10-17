@@ -1,0 +1,139 @@
+/* RepPlate service worker: keeps the app working offline. Bump VERSION when you change files. */
+const VERSION = 'repplate-v14';
+const IMG_CACHE = 'repplate-exercise-images';
+const PRECACHE = [
+ "./",
+ "index.html",
+ "styles.css",
+ "app.js",
+ "manifest.webmanifest",
+ "data/exercises.json",
+ "data/foods.json",
+ "vendor/zxing.min.js",
+ "fonts/archivo-latin-wght-normal.woff2",
+ "fonts/big-shoulders-display-latin-600-normal.woff2",
+ "fonts/big-shoulders-display-latin-800-normal.woff2",
+ "icons/apple-touch-icon.png",
+ "icons/icon-192.png",
+ "icons/icon-512.png",
+ "icons/maskable-512.png",
+ "img/ex/Barbell_Bench_Press_-_Medium_Grip/0.jpg",
+ "img/ex/Barbell_Bench_Press_-_Medium_Grip/1.jpg",
+ "img/ex/Barbell_Curl/0.jpg",
+ "img/ex/Barbell_Curl/1.jpg",
+ "img/ex/Barbell_Squat/0.jpg",
+ "img/ex/Barbell_Squat/1.jpg",
+ "img/ex/Bent_Over_Two-Dumbbell_Row/0.jpg",
+ "img/ex/Bent_Over_Two-Dumbbell_Row/1.jpg",
+ "img/ex/Bodyweight_Squat/0.jpg",
+ "img/ex/Bodyweight_Squat/1.jpg",
+ "img/ex/Bodyweight_Walking_Lunge/0.jpg",
+ "img/ex/Bodyweight_Walking_Lunge/1.jpg",
+ "img/ex/Butt_Lift_Bridge/0.jpg",
+ "img/ex/Butt_Lift_Bridge/1.jpg",
+ "img/ex/Cross-Body_Crunch/0.jpg",
+ "img/ex/Cross-Body_Crunch/1.jpg",
+ "img/ex/Crunches/0.jpg",
+ "img/ex/Crunches/1.jpg",
+ "img/ex/Dips_-_Triceps_Version/0.jpg",
+ "img/ex/Dips_-_Triceps_Version/1.jpg",
+ "img/ex/Dumbbell_Bench_Press/0.jpg",
+ "img/ex/Dumbbell_Bench_Press/1.jpg",
+ "img/ex/Dumbbell_Bicep_Curl/0.jpg",
+ "img/ex/Dumbbell_Bicep_Curl/1.jpg",
+ "img/ex/Dumbbell_Lunges/0.jpg",
+ "img/ex/Dumbbell_Lunges/1.jpg",
+ "img/ex/Dumbbell_One-Arm_Triceps_Extension/0.jpg",
+ "img/ex/Dumbbell_One-Arm_Triceps_Extension/1.jpg",
+ "img/ex/Dumbbell_Shoulder_Press/0.jpg",
+ "img/ex/Dumbbell_Shoulder_Press/1.jpg",
+ "img/ex/Face_Pull/0.jpg",
+ "img/ex/Face_Pull/1.jpg",
+ "img/ex/Flat_Bench_Lying_Leg_Raise/0.jpg",
+ "img/ex/Flat_Bench_Lying_Leg_Raise/1.jpg",
+ "img/ex/Goblet_Squat/0.jpg",
+ "img/ex/Goblet_Squat/1.jpg",
+ "img/ex/Hammer_Curls/0.jpg",
+ "img/ex/Hammer_Curls/1.jpg",
+ "img/ex/Incline_Dumbbell_Press/0.jpg",
+ "img/ex/Incline_Dumbbell_Press/1.jpg",
+ "img/ex/Leg_Extensions/0.jpg",
+ "img/ex/Leg_Extensions/1.jpg",
+ "img/ex/Leg_Press/0.jpg",
+ "img/ex/Leg_Press/1.jpg",
+ "img/ex/Lying_Leg_Curls/0.jpg",
+ "img/ex/Lying_Leg_Curls/1.jpg",
+ "img/ex/Mountain_Climbers/0.jpg",
+ "img/ex/Mountain_Climbers/1.jpg",
+ "img/ex/Plank/0.jpg",
+ "img/ex/Plank/1.jpg",
+ "img/ex/Pushups/0.jpg",
+ "img/ex/Pushups/1.jpg",
+ "img/ex/Romanian_Deadlift/0.jpg",
+ "img/ex/Romanian_Deadlift/1.jpg",
+ "img/ex/Russian_Twist/0.jpg",
+ "img/ex/Russian_Twist/1.jpg",
+ "img/ex/Seated_Cable_Rows/0.jpg",
+ "img/ex/Seated_Cable_Rows/1.jpg",
+ "img/ex/Side_Bridge/0.jpg",
+ "img/ex/Side_Bridge/1.jpg",
+ "img/ex/Side_Lateral_Raise/0.jpg",
+ "img/ex/Side_Lateral_Raise/1.jpg",
+ "img/ex/Standing_Calf_Raises/0.jpg",
+ "img/ex/Standing_Calf_Raises/1.jpg",
+ "img/ex/Standing_Military_Press/0.jpg",
+ "img/ex/Standing_Military_Press/1.jpg",
+ "img/ex/Superman/0.jpg",
+ "img/ex/Superman/1.jpg",
+ "img/ex/Triceps_Pushdown/0.jpg",
+ "img/ex/Triceps_Pushdown/1.jpg",
+ "img/ex/Wide-Grip_Lat_Pulldown/0.jpg",
+ "img/ex/Wide-Grip_Lat_Pulldown/1.jpg"
+];
+
+self.addEventListener('install', event => {
+  event.waitUntil(caches.open(VERSION).then(c => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
+});
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(keys => Promise.all(keys.filter(k => k !== VERSION && k !== IMG_CACHE).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
+  );
+});
+
+async function networkFirst(req) {
+  const cache = await caches.open(VERSION);
+  try {
+    const res = await Promise.race([fetch(req), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 4000))]);
+    if (res && res.ok) cache.put(req, res.clone());
+    return res;
+  } catch (e) {
+    const hit = await cache.match(req, { ignoreSearch: true });
+    if (hit) return hit;
+    if (req.mode === 'navigate') return (await cache.match('index.html')) || Response.error();
+    return Response.error();
+  }
+}
+async function cacheFirst(req, name) {
+  const cache = await caches.open(name);
+  const hit = await cache.match(req, { ignoreSearch: name === VERSION });
+  if (hit) return hit;
+  const res = await fetch(req);
+  if (res && res.ok) cache.put(req, res.clone());
+  return res;
+}
+
+self.addEventListener('fetch', event => {
+  const req = event.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+  if (url.origin === self.location.origin) {
+    const shell = req.mode === 'navigate' || /\.(html|js|css|webmanifest)$/.test(url.pathname) || url.pathname.endsWith('/');
+    event.respondWith(shell ? networkFirst(req) : cacheFirst(req, VERSION));
+    return;
+  }
+  if (url.hostname === 'raw.githubusercontent.com' || url.hostname === 'cdn.jsdelivr.net') {
+    event.respondWith(cacheFirst(req, IMG_CACHE));
+  }
+  // Everything else (Open Food Facts lookups and product photos) goes straight to the network.
+});
