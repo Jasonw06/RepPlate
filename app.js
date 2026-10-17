@@ -5899,7 +5899,19 @@ applyTheme();
 buildTabbar();
 route();
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  // Updates: check for a new version every time the app opens or comes back to the front, and switch to it
+  // straight away if that happens within a few seconds (never mid-workout or with a sheet open).
+  const hadWorker = !!navigator.serviceWorker.controller;
+  let shownAt = Date.now(), switched = false;
+  const checkForUpdate = () => navigator.serviceWorker.getRegistration().then(r => r && r.update()).catch(() => {});
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadWorker || switched) return;   // first install: nothing old to replace
+    switched = true;
+    if (Date.now() - shownAt < 20000 && !S.active && !layers.length) location.reload();
+    else toast('RepPlate has been updated. Close and reopen it to see what’s new.');
+  });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { shownAt = Date.now(); checkForUpdate(); } });
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(checkForUpdate).catch(() => {}));
 }
 // expose for debugging in the browser console
 window.RepPlate = { get state() { return S; }, fn: { programDays: (...a) => programDays(...a), programOf: (...a) => programOf(...a) } };

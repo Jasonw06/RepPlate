@@ -1,5 +1,5 @@
 /* RepPlate service worker: keeps the app working offline. Bump VERSION when you change files. */
-const VERSION = 'repplate-v16';
+const VERSION = 'repplate-v17';
 const IMG_CACHE = 'repplate-exercise-images';
 const PRECACHE = [
  "./",
@@ -93,7 +93,8 @@ const PRECACHE = [
 ];
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(VERSION).then(c => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
+  // cache: 'reload' skips the phone's own 10-minute copy, so a new version stores the new files
+  event.waitUntil(caches.open(VERSION).then(c => c.addAll(PRECACHE.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', event => {
   event.waitUntil(
@@ -102,12 +103,14 @@ self.addEventListener('activate', event => {
   );
 });
 
-async function networkFirst(req) {
+async function networkFirst(req, event) {
   const cache = await caches.open(VERSION);
+  // 'no-cache' = always ask the server whether the file changed (a tiny check when it hasn't)
+  const fresh = fetch(req.mode === 'navigate' ? new Request(req.url, { cache: 'no-cache', credentials: 'same-origin' }) : new Request(req, { cache: 'no-cache' }))
+    .then(res => { if (res && res.ok) return cache.put(req, res.clone()).then(() => res); return res; });
+  event.waitUntil(fresh.catch(() => {}));   // on a slow line, keep downloading and save it for next time
   try {
-    const res = await Promise.race([fetch(req), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 4000))]);
-    if (res && res.ok) cache.put(req, res.clone());
-    return res;
+    return await Promise.race([fresh, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 4000))]);
   } catch (e) {
     const hit = await cache.match(req, { ignoreSearch: true });
     if (hit) return hit;
@@ -130,7 +133,7 @@ self.addEventListener('fetch', event => {
   const url = new URL(req.url);
   if (url.origin === self.location.origin) {
     const shell = req.mode === 'navigate' || /\.(html|js|css|webmanifest)$/.test(url.pathname) || url.pathname.endsWith('/');
-    event.respondWith(shell ? networkFirst(req) : cacheFirst(req, VERSION));
+    event.respondWith(shell ? networkFirst(req, event) : cacheFirst(req, VERSION));
     return;
   }
   if (url.hostname === 'raw.githubusercontent.com' || url.hostname === 'cdn.jsdelivr.net') {
