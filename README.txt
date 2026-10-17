@@ -9,6 +9,15 @@ WHAT IT DOES
   counts down the last seconds, announces the next set or exercise and starts it by itself,
   until the workout is done. Pause any time. Rep speed (slow / normal / fast), the voice and
   "I tap when done" mode are under Me > Workout coach. The voice is free and works offline.
+- 3D exercise animations: about 325 exercises (all the starter-routine moves except bodyweight squat,
+  plank and Superman) show an animated 3D figure doing the movement, with the working muscle in red,
+  on the exercise page and in workout mode. Tap "Photos" to switch to the start/finish photos (and
+  "3D" to switch back); the choice is remembered. Animations load from ExerciseDB's free servers the
+  first time and are then kept on the phone for offline use; if one can't load, the photos show.
+- Muscles worked: every exercise page shows a front-and-back body figure with the main muscles lit
+  up in orange and the helping muscles in a lighter shade, plus "Feel it in your chest" and what
+  else it works. During a workout a small figure sits in the corner of the picture so you know
+  where you should feel each set. The muscle recovery map on Train uses the same figure.
 - Real video if you want it: on any exercise page, paste a YouTube link (Add a video). In
   workout mode it plays on repeat with the sound off while the coach counts.
 - Workout mode also logs your reps and weight, runs the rest timer (beeps and vibrates), and
@@ -151,4 +160,10 @@ CREDITS AND LICENCES
 - Barcode reading: ZXing (Apache 2.0) in vendor/zxing.min.js, used when the phone has no
   built-in barcode reader.
 - Fonts: Big Shoulders Display, Archivo and Nunito (all SIL Open Font Licence), in fonts/.
+- 3D exercise animations: ExerciseDB free V1 dataset by AscendAPI (https://oss.exercisedb.dev),
+  free for personal and non-commercial apps with credit to AscendAPI. data/anim.json links our
+  exercises to their animations; the animations themselves load from ExerciseDB's servers. A paid
+  plan is needed if RepPlate is ever sold or used commercially.
+- Muscle figure shapes: adapted from react-body-highlighter by GV79 (MIT licence). The licence text
+  is in THIRD-PARTY-LICENSES.txt; keep that file with the app.
 RepPlate gives general fitness information, not medical advice.

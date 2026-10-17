@@ -1753,3 +1753,52 @@ a.pulse-ideas { text-decoration: none; }
 }
 .gfield > span:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 359px) { .gtiles .gfield { padding: 9px 10px 5px; } .gtiles .gfield .input { font-size: 20px; } }
+
+/* ---------- body figure: where you should feel an exercise (shapes: react-body-highlighter, MIT) ---------- */
+:root { --body-c: #D1D1D6; --help-c: color-mix(in srgb, var(--workout) 40%, var(--body-c)); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --body-c: #3A3A3C; } }
+:root[data-theme="dark"] { --body-c: #3A3A3C; }
+.bodyfig { display: block; width: 100%; height: auto; overflow: visible; }
+.bf { fill: var(--body-c); stroke: var(--body-c); stroke-width: 1.5; stroke-linejoin: round; transition: fill .3s, stroke .3s; }
+.bf.bf-main { fill: var(--workout); stroke: var(--workout); }
+.bf.bf-help { fill: var(--help-c); stroke: var(--help-c); }
+.muscles-card .bodyfig { max-width: 290px; justify-self: center; }
+.mw-key { display: grid; gap: 6px; }
+.mw-key p { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 15px; }
+.mw-key b { font-weight: 700; }
+.mw-key i { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.k-main { background: var(--workout); } .k-help { background: var(--help-c); }
+/* in the workout player: a small figure in the corner of the picture */
+.p-media { position: relative; }
+.mus-pip { position: absolute; left: 10px; bottom: 10px; height: min(40%, 128px); padding: 7px 9px; border-radius: 16px; background: rgba(0, 0, 0, .55); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); --body-c: rgba(255, 255, 255, .26); --help-c: color-mix(in srgb, var(--workout) 45%, #5a5a5e); pointer-events: none; }
+.mus-pip .bodyfig { height: 100%; width: auto; }
+.mus-pip .bf { stroke-width: 2.4; }
+.p-feel { display: flex; align-items: center; gap: 7px; margin: 0; font-size: 14px; color: var(--muted); }
+.p-feel i { width: 8px; height: 8px; border-radius: 50%; background: var(--workout); flex: none; }
+/* muscle recovery map on Train, same figure */
+.bodymap { width: 100%; max-width: 300px; justify-self: center; display: grid; gap: 4px; }
+.bf.rec-fresh { fill: var(--green); stroke: var(--green); }
+.bf.rec-ok { fill: var(--yellow); stroke: var(--yellow); }
+.bf.rec-mid { fill: var(--orange); stroke: var(--orange); }
+.bf.rec-tired { fill: var(--red); stroke: var(--red); }
+.bm-labs { display: grid; grid-template-columns: 1fr 1fr; margin: 0; text-align: center; font-size: 12px; font-weight: 600; color: var(--muted); }
+.muscles-card .bodyfig { max-width: 236px; }
+:root { --help-c: color-mix(in srgb, var(--workout) 48%, var(--body-c)); }
+.mus-pip { height: min(46%, 140px); }
+.bf.rec-fresh { fill: color-mix(in srgb, var(--green) 30%, var(--body-c)); stroke: color-mix(in srgb, var(--green) 30%, var(--body-c)); }
+.rec-key .rec-fresh { background: color-mix(in srgb, var(--green) 45%, var(--body-c)); }
+.bodymap { max-width: 250px; }
+
+/* ---------- 3D exercise animations (ExerciseDB, free version) on a light stage ---------- */
+.demo.anim { background: #FFFFFF; box-shadow: inset 0 0 0 var(--hair) var(--sep); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .demo.anim { background: #E5E5EA; } }
+:root[data-theme="dark"] .demo.anim { background: #E5E5EA; }
+.demo.anim .anim-gif { position: absolute; inset: 3% 0; width: 100%; height: 94%; object-fit: contain; mix-blend-mode: multiply; image-rendering: auto; opacity: 1; transition: none; }
+.demo-swap {
+  position: absolute; right: 8px; top: 8px; z-index: 2; display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 11px;
+  border: 0; border-radius: 99px; background: rgba(0, 0, 0, .55); color: #fff; font: 600 12.5px/1 var(--body);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+}
+.demo-swap .i { width: 13px; height: 13px; }
+.demo.noimg .demo-swap { position: static; margin-top: 4px; }
+@media (min-width: 700px) { .demo.anim { max-height: 360px; } }

@@ -140,7 +140,7 @@ function starterRoutines() {
 function defaults() {
   return {
     v: 1,
-    settings: { kcal: 2000, protein: 130, carbs: 220, fat: 65, energy: 'kcal', weight: 'kg', rest: 60, region: 'world', theme: 'dark', themeV: 2, sound: true, goalsSet: false, installDismissed: false, profile: {}, guided: true, coach: true, tempo: 'normal', voiceURI: '', aiKey: '', aiModels: [], voiceBasic: false, waterGoal: 8, rate: null, summarySeen: '', quickKit: 'none', diet: { avoid: [], style: 'all', other: '', asked: false } },
+    settings: { kcal: 2000, protein: 130, carbs: 220, fat: 65, energy: 'kcal', weight: 'kg', rest: 60, region: 'world', theme: 'dark', themeV: 2, sound: true, goalsSet: false, installDismissed: false, profile: {}, guided: true, coach: true, tempo: 'normal', voiceURI: '', aiKey: '', aiModels: [], voiceBasic: false, waterGoal: 8, rate: null, summarySeen: '', quickKit: 'none', demoStyle: 'anim', diet: { avoid: [], style: 'all', other: '', asked: false } },
     log: {}, foods: {}, routines: starterRoutines(), workouts: [], lastWeights: {}, videos: {}, meals: [], weights: [], water: {}, schedule: {}, week: null, active: null,
   };
 }
@@ -190,10 +190,19 @@ const roundW = v => Math.round(v * 2) / 2;
 
 /* ============================== exercises ============================== */
 let EX = [], EXMAP = new Map(), exError = false;
-const exReady = fetch('data/exercises.json')
-  .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
-  .then(list => { EX = list; for (const e of list) EXMAP.set(e.i, e); })
-  .catch(() => { exError = true; });
+// Exercise animations: ExerciseDB free V1 dataset by AscendAPI (free for personal, non-commercial apps; credit required).
+// data/anim.json maps our exercise ids to ExerciseDB animation ids; the GIFs load from ExerciseDB's own servers.
+const ANIM_B = 'https://static.exercisedb.dev/media/';
+let ANIM = {};
+const animFailed = new Set();
+const exReady = Promise.all([
+  fetch('data/exercises.json')
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(list => { EX = list; for (const e of list) EXMAP.set(e.i, e); })
+    .catch(() => { exError = true; }),
+  fetch('data/anim.json').then(r => (r.ok ? r.json() : {})).then(m => { ANIM = m || {}; }).catch(() => {}),
+]);
+const animFor = id => (ANIM[id] && S.settings.demoStyle !== 'photo' && !animFailed.has(ANIM[id])) ? ANIM[id] : '';
 const exName = id => EXMAP.get(id)?.n || String(id).replace(/_/g, ' ');
 const imgSrc = (id, k) => LOCAL_IMG.has(id) ? `img/ex/${encodeURIComponent(id)}/${k}.jpg` : `${IMG_A}${encodeURIComponent(id)}/${k}.jpg`;
 function imgTag(id, k, cls) {
@@ -204,17 +213,29 @@ function imgTag(id, k, cls) {
 }
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 function demo(id, cls = '', driven = false) {
-  const e = EXMAP.get(id);
-  if (e && !e.g) return `<div class="demo noimg ${cls}">${I.dumbbell}<span>No pictures for this one yet</span></div>`;
+  const e = EXMAP.get(id), aid = animFor(id);
+  const keep = `data-ex="${esc(id)}" data-cls="${esc(cls)}" data-driven="${driven ? 1 : ''}"`;
+  const swap = to => ANIM[id] && !animFailed.has(ANIM[id]) ? `<button type="button" class="demo-swap" data-demo-swap aria-label="Show ${to === 'photo' ? 'photos' : 'the 3D animation'} instead">${to === 'photo' ? `${I.image} Photos` : `${I.playF} 3D`}</button>` : '';
+  if (aid) return `<div class="demo anim ${cls}" ${keep}>
+    <img class="anim-gif" src="${ANIM_B}${aid}.gif" data-anim="${aid}" alt="${esc(exName(id))}: animated demonstration" decoding="async">
+    ${swap('photo')}</div>`;
+  if (e && !e.g) return `<div class="demo noimg ${cls}" ${keep}>${I.dumbbell}<span>No pictures for this one yet</span>${swap('anim')}</div>`;
   const remote = !LOCAL_IMG.has(id);
   const attrs = k => `src="${imgSrc(id, k)}" ${remote ? `data-alt="${IMG_B}${encodeURIComponent(id)}/${k}.jpg" crossorigin="anonymous"` : ''}`;
-  return `<div class="demo ${cls} ${driven ? 'driven' : reduceMotion ? 'paused' : ''}" data-demo>
+  return `<div class="demo ${cls} ${driven ? 'driven' : reduceMotion ? 'paused' : ''}" data-demo ${keep}>
     <img class="f0" ${attrs(0)} alt="${esc(exName(id))}: start position">
     <img class="f1" ${attrs(1)} alt="${esc(exName(id))}: finish position">
     <span class="demo-tag">Start</span>
     ${driven ? '' : `<button type="button" class="demo-btn" data-demo-toggle aria-label="${reduceMotion ? 'Play' : 'Pause'} demonstration">${reduceMotion ? I.play : I.pause}</button>`}
+    ${swap('anim')}
   </div>`;
 }
+const redrawDemo = d => { if (d && d.dataset.ex) d.outerHTML = demo(d.dataset.ex, d.dataset.cls || '', d.dataset.driven === '1'); };
+// an animation that can't load (offline and not saved yet, or missing) quietly falls back to the photos
+document.addEventListener('error', ev => {
+  const img = ev.target; if (!(img instanceof HTMLImageElement) || !img.dataset.anim) return;
+  animFailed.add(img.dataset.anim); redrawDemo(img.closest('.demo'));
+}, true);
 setInterval(() => {
   for (const d of $$('.demo[data-demo]:not(.paused):not(.driven)')) {
     d.classList.toggle('alt');
@@ -2984,6 +3005,50 @@ function exProgressPanel(id) {
   </section>`;
 }
 
+/* ---------- the body figure: which muscles an exercise works, and recovery ----------
+   Muscle shapes: react-body-highlighter by GV79 (MIT licence). Front view = f, back view = b, 100 × 200 each. */
+const BODY = {"f":[["chest","51.8,41.6 51,55.1 58,58.0 67.8,55.5 70.6,47.3 62,41.6|29.8,46.5 31.4,55.5 40.8,58.0 48.2,55.1 47.8,42.0 37.6,42.0"],["obliques","68.6,63.3 67.3,57.1 58.8,59.6 60,64.1 60.4,83.3 65.7,78.8 66.5,69.8|33.9,78.4 33.1,71.8 31,63.3 32.2,57.1 40.8,59.2 39.2,63.3 39.2,83.7"],["abs","56.3,59.2 58,64.1 58.4,78.0 58.4,92.7 56.3,98.4 55.1,104.1 51.4,107.8 51,84.5 50.6,67.3 51,57.1|43.7,58.8 48.6,57.1 49,67.3 48.6,84.5 48.2,107.3 44.5,103.7 40.8,91.4 40.8,78.4 41.2,64.5"],["biceps","16.7,68.2 18,71.4 22.9,66.1 29,53.9 27.8,49.4 20.4,55.9|71.4,49.4 70.2,54.7 76.3,66.1 81.6,71.8 82.9,69.0 78.8,55.5"],["triceps","69.4,55.5 69.4,61.6 75.9,72.7 77.6,70.2 75.5,67.3|22.4,69.4 29.8,55.5 29.8,60.8 22.9,73.1"],["neck","55.5,23.7 50.6,33.5 50.6,39.2 61.6,40.0 70.6,44.9 69.4,36.7 63.3,35.1 58.4,30.6|29,44.9 30.2,37.1 36.3,35.1 41.2,30.2 44.5,24.5 49,33.9 48.6,39.2 38,39.6"],["front-deltoids","78.4,53.1 79.6,47.8 79.2,41.2 75.9,38.0 71,36.3 72.2,42.9 71.4,47.3|28.2,47.3 21.2,53.1 20,47.8 20.4,40.8 24.5,37.1 28.6,37.1 26.9,43.3"],["head","42.4,2.9 40,11.8 42,19.6 46.1,23.3 49.8,25.3 54.7,22.4 57.6,19.2 59.2,10.2 57.1,2.4 49.8,0.0"],["abductors","52.7,110.2 54.3,124.9 60,110.2 62,100.0 64.9,94.3 60,92.7 56.7,104.5|47.8,110.6 44.9,125.3 42,115.9 40.4,113.1 39.6,107.3 38,102.4 34.7,93.9 39.6,92.2 41.6,99.2 43.7,105.3"],["quadriceps","34.7,98.8 37.1,108.2 37.1,127.8 34.3,137.1 31,132.7 29.4,120.0 28.2,111.4 29.4,100.8 32.2,94.7|63.3,105.7 64.5,100.0 66.9,94.7 70.2,101.2 71,111.8 68.2,133.1 65.3,137.6 62.4,128.6 62,111.4|38.8,129.4 38.4,112.2 41.2,118.4 44.5,129.4 42.9,135.1 40,146.1 36.3,146.5 35.5,140.0|59.6,145.7 55.5,129.0 60.8,113.9 61.2,130.2 64.1,139.6 62.9,146.5|32.7,138.4 26.5,145.7 25.7,136.7 25.7,127.3 26.9,114.3 29.4,133.5|71.8,113.1 73.9,124.1 73.9,140.4 72.7,145.7 66.5,138.4 70.2,133.5"],["knees","33.9,140.0 34.7,143.3 35.5,147.3 36.3,151.0 35.1,156.7 29.8,156.7 27.3,152.7 27.3,147.3 30.2,144.1|65.7,140.0 72.2,147.8 72.2,152.2 69.8,157.1 64.9,156.7 62.9,151.0"],["calves","71.4,160.4 73.5,153.5 76.7,161.2 79.6,167.8 78.4,187.8 79.6,195.5 74.7,195.5|24.9,194.7 27.8,164.9 28.2,160.4 26.1,154.3 24.9,157.6 22.4,161.6 20.8,167.8 22,188.2 20.8,195.5|72.7,195.1 69.8,159.2 65.3,158.4 64.1,162.4 64.1,165.3 65.7,177.1|35.5,158.4 35.9,162.4 35.9,166.9 35.1,172.2 35.1,176.7 32.2,182.0 30.6,187.3 26.9,194.7 27.3,187.8 28.2,180.4 28.6,175.5 29,169.8 29.8,164.1 30.2,158.8"],["forearm","6.1,88.6 10.2,75.1 14.7,70.2 16.3,74.3 19.2,73.5 4.5,97.6 0,100.0|84.5,69.8 83.3,73.5 80,73.1 95.1,98.4 100,100.4 93.5,89.4 89.8,76.3|77.6,72.2 77.6,77.6 80.4,84.1 85.3,89.8 92.2,101.2 94.7,99.6|6.9,101.2 13.5,90.6 18.8,84.1 21.6,77.1 21.2,71.8 4.9,98.8"]],"b":[["head","50.6,0.0 46,0.9 40.9,5.5 40.4,12.8 45.1,20.0 55.7,20.0 59.1,13.6 59.6,4.7 55.7,1.3"],["trapezius","44.7,21.7 47.7,21.7 47.2,38.3 47.7,64.7 38.3,53.2 35.3,40.9 31.1,36.6 39.1,33.2 43.8,27.2|52.3,21.7 55.7,21.7 56.6,27.2 60.9,32.8 68.9,36.6 64.7,40.4 61.7,53.2 52.3,64.7 53.2,38.3"],["back-deltoids","29.4,37.0 23,39.1 17.4,44.3 18.3,53.6 24.3,49.4 27.2,46.4|71.1,37.0 78.3,39.6 82.6,44.7 81.7,53.6 74.9,48.9 72.3,45.1"],["upper-back","31.1,38.7 28.1,48.9 28.5,55.3 34,75.3 47.2,71.1 47.2,66.4 36.6,54.0 33.6,41.3|68.9,38.7 71.9,49.4 71.5,56.2 66,75.3 52.8,71.1 52.8,66.4 63.4,54.5 66.4,41.7"],["triceps","26.8,49.8 17.9,55.7 14.5,72.3 16.6,81.7 21.7,63.8 26.8,55.7|73.6,50.2 82.1,55.7 86,73.2 83.4,82.1 77.9,63.0 73.2,55.7|26.8,58.3 26.8,68.5 23,75.3 19.1,77.4 22.6,65.5|72.8,58.3 77,64.7 80.4,77.4 76.6,75.3 72.8,68.9"],["lower-back","47.7,72.8 34.5,77.0 35.3,83.4 49.4,102.1 46.8,83.0|52.3,72.8 65.5,77.0 64.7,83.4 50.6,102.1 53.2,83.8"],["forearm","86.4,75.7 91.1,83.4 93.2,94.0 100,106.4 96.2,104.3 88.1,89.4 84.3,83.8|13.6,75.7 8.9,83.8 6.8,93.6 0,106.4 3.8,104.3 12.3,88.5 15.7,83.0|81.3,79.6 77.4,77.9 79.1,84.7 91.1,103.8 93.2,108.9 94.5,104.7|18.7,79.6 22.1,77.9 20.9,84.3 9.4,103.0 6.8,108.5 5.1,104.7"],["gluteal","44.7,99.6 30.2,108.5 29.8,118.7 31.5,126.0 47.2,121.3 49.4,114.9|55.3,99.1 51.1,114.5 52.3,120.9 68.1,126.0 69.8,119.1 69.4,108.5"],["adductor","48.1,123.0 44.7,123.0 41.3,125.5 45.1,144.3 48.5,135.7 48.9,129.4|51.9,122.6 55.7,123.4 59.1,126.0 54.9,144.3 51.9,136.2 51.1,129.4"],["hamstring","28.9,122.1 31.1,129.4 36.6,126.0 35.3,135.3 34.5,150.2 29.4,158.3 28.9,146.8 27.7,141.3 27.2,131.5|71.5,121.7 69.4,128.9 63.8,126.0 65.5,136.6 66.4,150.2 71.1,158.3 71.5,147.7 72.8,142.1 73.6,131.9|38.7,125.5 44.3,146.0 40.4,166.8 36.2,152.8 37,135.3|61.7,125.5 63.4,136.2 64.3,153.2 60,166.8 56.2,146.4"],["knees","34.5,153.2 31.1,159.1 33.6,166.4 37.4,162.6|66.4,153.6 63,163.0 66.8,166.4 69.4,159.1"],["calves","29.4,160.4 28.5,167.2 24.7,179.6 23.8,192.8 25.5,197.0 28.5,193.2 29.8,180.0 31.9,171.1 31.9,166.8|37.4,165.1 35.3,167.7 33.2,171.9 31.1,180.4 30.2,191.9 34,200.0 38.7,190.6 39.1,168.9|63,165.1 61.3,168.5 61.7,190.6 66.4,199.6 70.6,191.9 68.9,179.6 66.8,170.2|70.6,160.4 72.3,168.5 75.7,179.1 76.6,192.8 74.5,196.6 72.3,193.6 70.6,179.6 68.1,168.1"],["left-soleus","28.5,195.7 30.2,195.7 33.6,201.7 30.6,220.0 28.5,213.6 26.8,198.3"],["right-soleus","69.8,195.7 71.9,195.7 73.6,198.3 71.9,213.2 70.2,219.6 67.2,202.1"]]};
+const BODY_NAMES = { f: new Set(BODY.f.map(x => x[0])), b: new Set(BODY.b.map(x => x[0])) };
+// exercise-library muscle names → body shapes
+const MUSCLE_SHAPES = {
+  chest: ['chest'], shoulders: ['front-deltoids', 'back-deltoids'], triceps: ['triceps'], biceps: ['biceps'], forearms: ['forearm'],
+  lats: ['upper-back'], 'middle back': ['upper-back', 'trapezius'], 'lower back': ['lower-back'], traps: ['trapezius'], neck: ['neck'],
+  abdominals: ['abs', 'obliques'], glutes: ['gluteal'], abductors: ['gluteal'], adductors: ['abductors', 'adductor'],
+  quadriceps: ['quadriceps'], hamstrings: ['hamstring'], calves: ['calves', 'left-soleus', 'right-soleus'],
+};
+const MUSCLE_WORD = { abdominals: 'abs', quadriceps: 'quads', adductors: 'inner thighs', abductors: 'outer hips' };
+const muscleWord = m => MUSCLE_WORD[m] || m;
+const andList = a => a.length < 2 ? (a[0] || '') : `${a.slice(0, -1).join(', ')} and ${a[a.length - 1]}`;
+function bodyFig(classOf, { sides = 'fb', label = '', cls = '' } = {}) {
+  const list = [...sides];
+  const one = (sd, dx) => `<g transform="translate(${dx} 0)">${BODY[sd].map(([name, pts]) => pts.split('|').map(pp => `<polygon class="bf ${classOf(name) || ''}" data-m="${name}" points="${pp}"/>`).join('')).join('')}</g>`;
+  const w = list.length * 100 + (list.length - 1) * 14;
+  return `<svg class="bodyfig ${cls}" viewBox="-3 -3 ${w + 6} 206" role="img" aria-label="${esc(label)}">${list.map((sd, i) => one(sd, i * 114)).join('')}</svg>`;
+}
+function exTargets(e) {
+  const main = [...new Set(e.m || [])], help = [...new Set(e.s || [])].filter(m => !main.includes(m));
+  const mainS = new Set(main.flatMap(m => MUSCLE_SHAPES[m] || [])), helpS = new Set(help.flatMap(m => MUSCLE_SHAPES[m] || []));
+  return { main, help, mainS, cls: name => mainS.has(name) ? 'bf-main' : helpS.has(name) ? 'bf-help' : '' };
+}
+function musclesCard(e) {
+  if (!e || !(e.m || []).length) return '';
+  const t = exTargets(e), main = andList(t.main.map(muscleWord)), help = andList(t.help.map(muscleWord));
+  return `<section class="panel tight muscles-card" aria-label="Muscles worked">
+    ${secHead(I.user, 'workout', 'Muscles worked')}
+    ${bodyFig(t.cls, { label: `Main: ${main}.${help ? ` Also works: ${help}.` : ''}` })}
+    <div class="mw-key"><p><i class="k-main"></i><span>Feel it in your <b>${esc(main)}</b></span></p>${help ? `<p><i class="k-help"></i><span>Also works your ${esc(help)}</span></p>` : ''}</div>
+  </section>`;
+}
+function musclePip(id) {
+  const e = EXMAP.get(id); if (!e || !(e.m || []).length) return '';
+  const t = exTargets(e), shapes = [...t.mainS];
+  // triceps show on both views: count them for the back unless the front already has something
+  const f = shapes.some(n => BODY_NAMES.f.has(n) && n !== 'triceps');
+  const b = shapes.some(n => BODY_NAMES.b.has(n) && n !== 'triceps') || (shapes.includes('triceps') && !f);
+  return `<div class="mus-pip" aria-hidden="true">${bodyFig(t.cls, { sides: (f ? 'f' : '') + (b ? 'b' : '') || 'f' })}</div>`;
+}
+const feelLine = id => { const e = EXMAP.get(id); return e && (e.m || []).length ? `<p class="p-feel"><i></i>Feel it in your ${esc(andList([...new Set(e.m)].map(muscleWord)))}</p>` : ''; };
+
 /* ---------- muscle recovery map ---------- */
 function muscleLoad() {
   const now = Date.now(), out = {};
@@ -3000,27 +3065,11 @@ function muscleLoad() {
 }
 const recState = v => (!v ? 'fresh' : v >= 6 ? 'tired' : v >= 2.5 ? 'mid' : 'ok');
 function bodyMapSVG(load) {
-  const c = m => `mus rec-${recState(load[m] || 0)}`, t = m => `<title>${m}: ${({ fresh: 'fresh', ok: 'nearly recovered', mid: 'recovering', tired: 'worked hard recently' })[recState(load[m] || 0)]}</title>`;
-  const fig = (cx, back) => {
-    const L = x => cx - x, R = x => cx + x, sym = (fn) => fn(L) + fn(R);
-    const sil = `<g class="sil"><circle cx="${cx}" cy="18" r="11"/><rect x="${cx - 5}" y="27" width="10" height="9" rx="3"/><rect x="${cx - 21}" y="34" width="42" height="68" rx="15"/>
-      ${sym(f => `<rect x="${Math.min(f(34), f(22))}" y="38" width="12" height="44" rx="6"/><rect x="${Math.min(f(38), f(27))}" y="80" width="11" height="34" rx="5.5"/><rect x="${Math.min(f(18), f(3))}" y="98" width="15" height="58" rx="7.5"/><rect x="${Math.min(f(16), f(4))}" y="154" width="12" height="46" rx="6"/>`)}</g>`;
-    const ell = (m, x, y, rx, ry) => sym(f => `<ellipse class="${c(m)}" cx="${f(x)}" cy="${y}" rx="${rx}" ry="${ry}">${t(m)}</ellipse>`);
-    if (!back) return sil + `<path class="${c('neck')}" d="M${cx - 4} 28h8v7h-8z">${t('neck')}</path>
-      <path class="${c('traps')}" d="M${cx - 12} 37 L${cx - 5} 33 L${cx + 5} 33 L${cx + 12} 37 L${cx} 41 Z">${t('traps')}</path>
-      ${ell('shoulders', 22, 44, 8, 9)}${ell('chest', 9, 52, 9.5, 7.5)}${ell('biceps', 28, 63, 5.2, 11)}${ell('forearms', 32.5, 94, 4.6, 13)}
-      <rect class="${c('abdominals')}" x="${cx - 8}" y="62" width="16" height="34" rx="6">${t('abdominals')}</rect>
-      ${ell('abductors', 15, 104, 4, 8)}${ell('quadriceps', 10.5, 128, 6.5, 21)}<ellipse class="${c('adductors')}" cx="${cx}" cy="116" rx="3.2" ry="11">${t('adductors')}</ellipse>${ell('calves', 10, 172, 5, 15)}`;
-    return sil + `<path class="${c('neck')}" d="M${cx - 4} 27h8v7h-8z">${t('neck')}</path>
-      <path class="${c('traps')}" d="M${cx - 13} 36 L${cx} 30 L${cx + 13} 36 L${cx + 6} 54 L${cx - 6} 54 Z">${t('traps')}</path>
-      ${ell('shoulders', 22, 44, 8, 9)}${ell('triceps', 28, 63, 5.2, 11)}${ell('forearms', 32.5, 94, 4.6, 13)}
-      ${sym(f => `<path class="${c('lats')}" d="M${f(7)} 56 Q${f(20)} 62 ${f(17)} 84 L${f(7)} 80 Z">${t('lats')}</path>`)}
-      <rect class="${c('middle back')}" x="${cx - 6}" y="55" width="12" height="24" rx="4">${t('middle back')}</rect>
-      <rect class="${c('lower back')}" x="${cx - 9}" y="81" width="18" height="15" rx="5">${t('lower back')}</rect>
-      ${ell('glutes', 9, 106, 9, 8.5)}${ell('hamstrings', 10.5, 133, 6.5, 19)}${ell('calves', 10, 172, 5.5, 15)}`;
-  };
-  return `<svg class="bodymap" viewBox="0 0 240 222" role="img" aria-label="Muscle recovery map, front and back">${fig(60, false)}${fig(180, true)}
-    <text class="bm-lab" x="60" y="219" text-anchor="middle">Front</text><text class="bm-lab" x="180" y="219" text-anchor="middle">Back</text></svg>`;
+  const shapeLoad = {};
+  for (const [m, shapes] of Object.entries(MUSCLE_SHAPES)) for (const sh of shapes) shapeLoad[sh] = Math.max(shapeLoad[sh] || 0, load[m] || 0);
+  const skip = new Set(['head', 'knees']);
+  return `<div class="bodymap">${bodyFig(n => skip.has(n) ? '' : `rec-${recState(shapeLoad[n] || 0)}`, { label: 'Muscle recovery map, front and back' })}
+    <p class="bm-labs"><span>Front</span><span>Back</span></p></div>`;
 }
 const MUSCLE_ORDER = ['chest', 'shoulders', 'triceps', 'biceps', 'forearms', 'lats', 'middle back', 'lower back', 'traps', 'abdominals', 'glutes', 'quadriceps', 'hamstrings', 'calves', 'adductors', 'abductors'];
 function recoveryPanel() {
@@ -4855,6 +4904,7 @@ function viewExercise(id) {
     ? `<button type="button" class="btn primary block" data-act="lib-pick" data-id="${esc(id)}" ${inDraft ? 'disabled' : ''}>${inDraft ? `${I.check} In ${esc(draft.name || 'your routine')}` : `${I.plus} Add to ${esc(draft.name || 'your routine')}`}</button>`
     : `<div class="row-btns"><button type="button" class="btn primary" data-act="ex-add" data-id="${esc(id)}">${I.plus} Add to routine</button>
        <a class="btn" href="#/ex/${encodeURIComponent(id)}#video">${I.video} ${v ? 'Your video' : 'Add a video'}</a></div>`}
+  ${musclesCard(e)}
   ${exProgressPanel(id)}
   <section class="panel tight">${secHead(I.check, 'workout', 'How to do it')}<ol class="steps">${e.t.map(s => `<li>${esc(s)}</li>`).join('')}</ol></section>
   <section class="panel tight" id="video" aria-label="Video">
@@ -5120,9 +5170,10 @@ const pNav = a => `<div class="p-nav">
 function guidedHTML(a) {
   const it = a.items[a.i], ex = EXMAP.get(it.ex);
   const timed = it.secs > 0, showW = !timed && !!ex && ex.e !== 'body only';
-  return `${mediaHTML(it.ex, true)}
+  return `<div class="p-media">${mediaHTML(it.ex, true)}${musclePip(it.ex)}</div>
   <div class="p-body">
     <h2 class="p-name">${esc(exName(it.ex))}</h2>
+    ${feelLine(it.ex)}
     <p class="p-set">${esc(setLabel(a))}${timed ? '' : ` · ${repMs() / 1000} s per rep`}${it.rest && !a.dropping ? ` · ${it.rest} s rest after` : ''}</p>
     ${a.set === 1 ? lastTimeHTML(it) : ''}
     <div class="p-target" aria-live="polite"><span class="huge" id="g-big">–</span><span class="p-unit" id="g-unit"></span></div>
@@ -5138,9 +5189,10 @@ function workHTML(a) {
   const timed = it.secs > 0, bodyOnly = !ex || ex.e === 'body only';
   const showReps = !timed, showW = !timed && !bodyOnly;
   const remaining = a.workEnd ? Math.max(0, Math.ceil((a.workEnd - Date.now()) / 1000)) : it.secs;
-  return `${mediaHTML(it.ex, false)}
+  return `<div class="p-media">${mediaHTML(it.ex, false)}${musclePip(it.ex)}</div>
   <div class="p-body">
     <h2 class="p-name">${esc(exName(it.ex))}</h2>
+    ${feelLine(it.ex)}
     <p class="p-set">${esc(setLabel(a))}${it.rest && !a.dropping && pairStartOf(a, a.i) !== a.i ? ` · then ${it.rest} s rest` : ''}</p>
     ${a.set === 1 ? lastTimeHTML(it) : ''}
     ${timed ? `<div class="p-target"><span class="huge" id="p-count">${clock(remaining)}</span><span class="p-unit">${a.workEnd ? 'to go' : 'hold'}</span></div>`
@@ -5208,7 +5260,7 @@ function onPlayerInput(e) {
   save();
 }
 function onPlayerClick(e) {
-  if (e.target.closest('[data-demo-toggle]')) return;
+  if (e.target.closest('[data-demo-toggle], [data-demo-swap]')) return;
   const b = e.target.closest('[data-p]'); if (!b) return;
   const a = S.active, p = b.dataset.p;
   if (p === 'finish') { closePlayer(); return; }
@@ -5468,6 +5520,8 @@ function viewMe() {
   <div class="credits">
     <p>Exercise pictures and instructions: free-exercise-db (public domain).</p>
     <p>Food data: <a href="https://world.openfoodfacts.org/" target="_blank" rel="noopener">Open Food Facts</a> contributors, Open Database Licence.</p>
+    <p>Muscle figure: <a href="https://github.com/GV79/react-body-highlighter" target="_blank" rel="noopener">react-body-highlighter</a> by GV79, MIT licence.</p>
+    <p>3D exercise animations: <a href="https://oss.exercisedb.dev/" target="_blank" rel="noopener">ExerciseDB</a> by AscendAPI (free version, personal non-commercial use).</p>
     <p>RepPlate gives general fitness information, not medical advice.</p>
   </div>`;
 }
@@ -5811,6 +5865,8 @@ document.addEventListener('click', e => {
   if (tabA) { e.preventDefault(); if (!layers.length) goTab(tabA.dataset.tab); return; }
   const repA = e.target.closest('a[data-nav="replace"]');
   if (repA && !e.target.closest('.layer')) { e.preventDefault(); if (repA.getAttribute('href') !== navHash()) navReplace(repA.getAttribute('href')); return; }
+  const sw = e.target.closest('[data-demo-swap]');
+  if (sw) { e.preventDefault(); S.settings.demoStyle = S.settings.demoStyle === 'photo' ? 'anim' : 'photo'; save(); $$('.demo[data-ex]').forEach(redrawDemo); return; }
   const dt = e.target.closest('[data-demo-toggle]');
   if (dt) {
     const d = dt.closest('.demo'); const paused = d.classList.toggle('paused');
@@ -5914,5 +5970,5 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(checkForUpdate).catch(() => {}));
 }
 // expose for debugging in the browser console
-window.RepPlate = { get state() { return S; }, fn: { programDays: (...a) => programDays(...a), programOf: (...a) => programOf(...a) } };
+window.RepPlate = { get state() { return S; }, fn: { programDays: (...a) => programDays(...a), programOf: (...a) => programOf(...a), allEx: () => EX.map(e => e.i), exGet: id => EXMAP.get(id), shapes: m => MUSCLE_SHAPES[m] || [], animMap: () => ANIM } };
 })();

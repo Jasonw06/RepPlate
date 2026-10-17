@@ -1,5 +1,5 @@
 /* RepPlate service worker: keeps the app working offline. Bump VERSION when you change files. */
-const VERSION = 'repplate-v17';
+const VERSION = 'repplate-v19';
 const IMG_CACHE = 'repplate-exercise-images';
 const PRECACHE = [
  "./",
@@ -9,6 +9,7 @@ const PRECACHE = [
  "manifest.webmanifest",
  "data/exercises.json",
  "data/foods.json",
+ "data/anim.json",
  "vendor/zxing.min.js",
  "fonts/nunito-latin-wght-normal.woff2",
  "fonts/archivo-latin-wght-normal.woff2",
@@ -118,12 +119,12 @@ async function networkFirst(req, event) {
     return Response.error();
   }
 }
-async function cacheFirst(req, name) {
+async function cacheFirst(req, name, keepOpaque = false) {
   const cache = await caches.open(name);
   const hit = await cache.match(req, { ignoreSearch: name === VERSION });
   if (hit) return hit;
   const res = await fetch(req);
-  if (res && res.ok) cache.put(req, res.clone());
+  if (res && (res.ok || (keepOpaque && res.type === 'opaque'))) cache.put(req, res.clone());
   return res;
 }
 
@@ -138,6 +139,10 @@ self.addEventListener('fetch', event => {
   }
   if (url.hostname === 'raw.githubusercontent.com' || url.hostname === 'cdn.jsdelivr.net') {
     event.respondWith(cacheFirst(req, IMG_CACHE));
+  }
+  // 3D exercise animations from ExerciseDB: keep a copy of each one once it has been seen, so it works offline
+  if (url.hostname === 'static.exercisedb.dev') {
+    event.respondWith(cacheFirst(req, IMG_CACHE, true));
   }
   // Everything else (Open Food Facts lookups and product photos) goes straight to the network.
 });
