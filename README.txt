@@ -105,6 +105,10 @@ WHAT IT DOES
 - AI coach chat (with the free key): ask about your eating and training and it answers from your
   own logs, goals and food needs.
 - Macro styles (balanced, high protein, low carb, keto) and daily habits with streaks.
+- You (Me > You): pick Male or Female once. The calorie calculator (BMR and TDEE), the body-fat
+  estimate, the safe minimum calorie goal, the AI coach and the muscle figures (a female body shape)
+  all follow it. The 3D exercise animations stay as they are: the free ExerciseDB set is almost all
+  male figures; its paid version has male and female animations.
 - TDEE & goal calculator (Me > Goals): works out your BMR (energy at rest, Mifflin-St Jeor
   formula), multiplies it by your activity level to get your TDEE (maintenance calories), then
   adds or takes away for your goal. Every step is labelled and explained.

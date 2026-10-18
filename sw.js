@@ -1,5 +1,5 @@
 /* RepPlate service worker: keeps the app working offline. Bump VERSION when you change files. */
-const VERSION = 'repplate-v21';
+const VERSION = 'repplate-v22';
 const IMG_CACHE = 'repplate-exercise-images';
 const PRECACHE = [
  "./",
