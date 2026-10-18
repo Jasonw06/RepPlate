@@ -189,24 +189,24 @@ const wStep = () => S.settings.weight === 'lb' ? 5 : 2.5;
 const roundW = v => Math.round(v * 2) / 2;
 
 /* ============================== exercises ============================== */
-let EX = [], EXMAP = new Map(), exError = false;
-// Exercise animations: ExerciseDB free V1 dataset by AscendAPI (free for personal, non-commercial apps; credit required).
-// data/anim.json maps our exercise ids to ExerciseDB animation ids; the GIFs load from ExerciseDB's own servers.
+// EX: every exercise we know (old ids keep working in routines and history). EXV: the ones listed in the library,
+// all with a 3D animation. Animations: ExerciseDB free V1 dataset by AscendAPI (free for personal, non-commercial
+// apps; credit required); e.a is the ExerciseDB animation id and the GIF loads from ExerciseDB's own servers.
+let EX = [], EXV = [], EXMAP = new Map(), exError = false;
 const ANIM_B = 'https://static.exercisedb.dev/media/';
-let ANIM = {};
 const animFailed = new Set();
-const exReady = Promise.all([
-  fetch('data/exercises.json')
-    .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
-    .then(list => { EX = list; for (const e of list) EXMAP.set(e.i, e); })
-    .catch(() => { exError = true; }),
-  fetch('data/anim.json').then(r => (r.ok ? r.json() : {})).then(m => { ANIM = m || {}; }).catch(() => {}),
-]);
-const animFor = id => (ANIM[id] && S.settings.demoStyle !== 'photo' && !animFailed.has(ANIM[id])) ? ANIM[id] : '';
+const exReady = fetch('data/exercises.json')
+  .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+  .then(list => { EX = list; EXV = list.filter(e => !e.h); for (const e of list) EXMAP.set(e.i, e); })
+  .catch(() => { exError = true; });
+const hasMedia = e => !!(e && (e.g || e.a));
+const animId = id => { const e = EXMAP.get(id); return e && e.a && !animFailed.has(e.a) ? e.a : ''; };
+const animFor = id => { const a = animId(id); return a && (S.settings.demoStyle !== 'photo' || !EXMAP.get(id).g) ? a : ''; };
 const exName = id => EXMAP.get(id)?.n || String(id).replace(/_/g, ' ');
 const imgSrc = (id, k) => LOCAL_IMG.has(id) ? `img/ex/${encodeURIComponent(id)}/${k}.jpg` : `${IMG_A}${encodeURIComponent(id)}/${k}.jpg`;
 function imgTag(id, k, cls) {
-  const e = EXMAP.get(id);
+  const e = EXMAP.get(id), a = animId(id);
+  if (a) return `<img class="${cls} anim-thumb" src="${ANIM_B}${a}.gif" data-anim="${a}" data-ex="${esc(id)}" data-k="${k}" data-cls="${esc(cls)}" alt="" loading="lazy" decoding="async">`;
   if (e && !e.g) return `<div class="${cls} noimg" aria-hidden="true">${I.dumbbell}</div>`;
   const remote = !LOCAL_IMG.has(id);
   return `<img class="${cls}" src="${imgSrc(id, k)}" ${remote ? `data-alt="${IMG_B}${encodeURIComponent(id)}/${k}.jpg" crossorigin="anonymous"` : ''} alt="" loading="lazy" decoding="async">`;
@@ -215,7 +215,7 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 function demo(id, cls = '', driven = false) {
   const e = EXMAP.get(id), aid = animFor(id);
   const keep = `data-ex="${esc(id)}" data-cls="${esc(cls)}" data-driven="${driven ? 1 : ''}"`;
-  const swap = to => ANIM[id] && !animFailed.has(ANIM[id]) ? `<button type="button" class="demo-swap" data-demo-swap aria-label="Show ${to === 'photo' ? 'photos' : 'the 3D animation'} instead">${to === 'photo' ? `${I.image} Photos` : `${I.playF} 3D`}</button>` : '';
+  const swap = to => e && e.g && animId(id) ? `<button type="button" class="demo-swap" data-demo-swap aria-label="Show ${to === 'photo' ? 'photos' : 'the 3D animation'} instead">${to === 'photo' ? `${I.image} Photos` : `${I.playF} 3D`}</button>` : '';
   if (aid) return `<div class="demo anim ${cls}" ${keep}>
     <img class="anim-gif" src="${ANIM_B}${aid}.gif" data-anim="${aid}" alt="${esc(exName(id))}: animated demonstration" decoding="async">
     ${swap('photo')}</div>`;
@@ -234,7 +234,9 @@ const redrawDemo = d => { if (d && d.dataset.ex) d.outerHTML = demo(d.dataset.ex
 // an animation that can't load (offline and not saved yet, or missing) quietly falls back to the photos
 document.addEventListener('error', ev => {
   const img = ev.target; if (!(img instanceof HTMLImageElement) || !img.dataset.anim) return;
-  animFailed.add(img.dataset.anim); redrawDemo(img.closest('.demo'));
+  animFailed.add(img.dataset.anim);
+  if (img.classList.contains('anim-thumb')) { img.outerHTML = imgTag(img.dataset.ex, +img.dataset.k || 0, img.dataset.cls || 'thumb'); return; }
+  redrawDemo(img.closest('.demo'));
 }, true);
 setInterval(() => {
   for (const d of $$('.demo[data-demo]:not(.paused):not(.driven)')) {
@@ -4329,7 +4331,7 @@ const isTimedEx = e => !!e && (e.c === 'stretching' || /plank|bridge|hold|wall s
 function buildQuick(mins, kit, focus) {
   const n = { 10: 4, 20: 5, 30: 6, 45: 8 }[mins] || 5, sets = mins <= 10 ? 2 : 3, rest = mins <= 10 ? 30 : mins <= 20 ? 45 : 60;
   const pool = POPULAR.map(id => EXMAP.get(id)).filter(e => e && e.g && KIT[kit].includes(e.e));
-  const backup = EX.filter(e => e.g && KIT[kit].includes(e.e) && e.l !== 'expert' && (e.c === 'strength' || e.c === 'plyometrics'));
+  const backup = EXV.filter(e => hasMedia(e) && KIT[kit].includes(e.e) && e.l !== 'expert' && (e.c === 'strength' || e.c === 'plyometrics'));
   const used = new Set(), items = [];
   const order = FOCUS[focus];
   for (let i = 0; items.length < n && i < order.length * 3; i++) {
@@ -4374,7 +4376,7 @@ function openQuick() {
 function similarTo(exId) {
   const e = EXMAP.get(exId); if (!e) return [];
   const m = e.m[0], pop = new Set(POPULAR);
-  return EX.filter(x => x.i !== exId && x.g && x.m.includes(m) && x.l !== 'expert' && x.c === e.c)
+  return EXV.filter(x => x.i !== exId && hasMedia(x) && x.m.includes(m) && x.l !== 'expert' && x.c === e.c)
     .map(x => ({ x, s: (pop.has(x.i) ? 4 : 0) + (x.e === e.e ? 2 : 0) + (LOCAL_IMG.has(x.i) ? 1 : 0) + (x.l === 'beginner' ? 0.5 : 0) - x.n.length / 60 }))
     .sort((a, b) => b.s - a.s).slice(0, 14).map(o => o.x);
 }
@@ -4840,11 +4842,11 @@ function viewTrain() {
 
 function viewLibrary() {
   if (exError) return `<header class="top"><h1 class="h-display">Exercises</h1></header><div class="empty"><strong>The exercise list didn’t load</strong><span>Open RepPlate from its web address (not as a file on your computer), then try again.</span></div>`;
-  const muscles = [...new Set(EX.flatMap(e => e.m))].sort();
-  const equips = [...new Set(EX.map(e => e.e))].sort();
+  const muscles = [...new Set(EXV.flatMap(e => e.m))].sort();
+  const equips = [...new Set(EXV.map(e => e.e))].sort();
   const opt = (v, cur) => `<option value="${esc(v)}" ${v === cur ? 'selected' : ''}>${esc(v[0].toUpperCase() + v.slice(1))}</option>`;
   return `
-  <header class="top"><div><p class="eyebrow">${n0(EX.length)} exercises with pictures</p><h1 class="h-display">Exercises</h1></div></header>
+  <header class="top"><div><p class="eyebrow">${n0(EXV.length)} exercises in 3D</p><h1 class="h-display">Exercises</h1></div></header>
   ${pickMode && draft ? '' : trainTabs('e')}
   <div class="filters">
     <label class="search-box"><span class="sr">Search exercises</span>${I.search}<input class="input" id="lib-q" type="search" autocomplete="off" placeholder="Search, e.g. squat or chest" value="${esc(lib.q)}"></label>
@@ -4859,7 +4861,7 @@ function viewLibrary() {
 }
 function libMatches() {
   const toks = lib.q.toLowerCase().split(/\s+/).filter(Boolean);
-  let list = EX.filter(e => (!lib.muscle || e.m.includes(lib.muscle)) && (!lib.equip || e.e === lib.equip));
+  let list = EXV.filter(e => (!lib.muscle || e.m.includes(lib.muscle)) && (!lib.equip || e.e === lib.equip));
   if (toks.length) {
     list = list.filter(e => { const hay = `${e.n} ${e.m.join(' ')} ${e.s.join(' ')} ${e.e} ${e.c}`.toLowerCase(); return toks.every(t => hay.includes(t)); });
     const q = lib.q.toLowerCase().trim();
@@ -4875,7 +4877,7 @@ function renderLibResults() {
   const list = libMatches();
   const shown = list.slice(0, lib.limit);
   const inDraft = new Set(pickMode && draft ? draft.items.map(i => i.ex) : []);
-  $('#lib-count').textContent = list.length === EX.length ? 'Popular moves first. Tap one to see how it’s done.' : `${n0(list.length)} ${list.length === 1 ? 'match' : 'matches'}`;
+  $('#lib-count').textContent = list.length === EXV.length ? 'Popular moves first. Tap one to see how it’s done.' : `${n0(list.length)} ${list.length === 1 ? 'match' : 'matches'}`;
   box.innerHTML = shown.map(e => `<li class="ex-row">
       <a class="ex-link" href="#/ex/${encodeURIComponent(e.i)}">${imgTag(e.i, 0, 'thumb')}<span class="ex-text"><span class="ex-name">${esc(exSplit(e.n)[0])}</span><span class="ex-meta">${exSplit(e.n)[1] ? `${esc(exSplit(e.n)[1])} · ` : ''}${esc(e.m.join(', '))} · ${esc(e.e)}</span></span></a>
       ${pickMode && draft ? `<button type="button" class="icon-btn add-ex ${inDraft.has(e.i) ? 'added' : ''}" data-act="lib-pick" data-id="${esc(e.i)}" aria-label="Add ${esc(e.n)}">${inDraft.has(e.i) ? I.check : I.plus}</button>` : ''}
@@ -4898,7 +4900,7 @@ function viewExercise(id) {
   return `
   <header class="top bar"><button type="button" class="icon-btn" data-act="back" data-fallback="#/exercises" aria-label="Back">${I.chevL}</button></header>
   ${demo(id)}
-  <div><p class="eyebrow">${esc(e.c)} · ${esc(e.l)}</p><h1 class="h-display md">${esc(e.n)}</h1></div>
+  <div><p class="eyebrow">${[e.c, e.l].filter(Boolean).map(esc).join(' · ')}</p><h1 class="h-display md">${esc(e.n)}</h1></div>
   <div class="tags">${e.m.map(m => `<span class="tag strong">${esc(m)}</span>`).join('')}${e.s.map(m => `<span class="tag">${esc(m)}</span>`).join('')}<span class="tag">${esc(e.e)}</span></div>
   ${pickMode && draft
     ? `<button type="button" class="btn primary block" data-act="lib-pick" data-id="${esc(id)}" ${inDraft ? 'disabled' : ''}>${inDraft ? `${I.check} In ${esc(draft.name || 'your routine')}` : `${I.plus} Add to ${esc(draft.name || 'your routine')}`}</button>`
@@ -5970,5 +5972,5 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(checkForUpdate).catch(() => {}));
 }
 // expose for debugging in the browser console
-window.RepPlate = { get state() { return S; }, fn: { programDays: (...a) => programDays(...a), programOf: (...a) => programOf(...a), allEx: () => EX.map(e => e.i), exGet: id => EXMAP.get(id), shapes: m => MUSCLE_SHAPES[m] || [], animMap: () => ANIM } };
+window.RepPlate = { get state() { return S; }, fn: { programDays: (...a) => programDays(...a), programOf: (...a) => programOf(...a), allEx: () => EX.map(e => e.i), listed: () => EXV.map(e => e.i), exGet: id => EXMAP.get(id), shapes: m => MUSCLE_SHAPES[m] || [] } };
 })();

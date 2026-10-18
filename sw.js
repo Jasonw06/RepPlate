@@ -1,5 +1,5 @@
 /* RepPlate service worker: keeps the app working offline. Bump VERSION when you change files. */
-const VERSION = 'repplate-v19';
+const VERSION = 'repplate-v20';
 const IMG_CACHE = 'repplate-exercise-images';
 const PRECACHE = [
  "./",
@@ -9,7 +9,6 @@ const PRECACHE = [
  "manifest.webmanifest",
  "data/exercises.json",
  "data/foods.json",
- "data/anim.json",
  "vendor/zxing.min.js",
  "fonts/nunito-latin-wght-normal.woff2",
  "fonts/archivo-latin-wght-normal.woff2",
@@ -93,9 +92,17 @@ const PRECACHE = [
  "img/ex/Wide-Grip_Lat_Pulldown/1.jpg"
 ];
 
+// 3D animations for the starter routines, saved on install so they work offline straight away
+const ANIM_B = 'https://static.exercisedb.dev/media/';
+const STARTER_ANIM = ["10Z2DXU", "17lJ1kr", "25GPyDY", "2NpxjC1", "3ZflifB", "75Bgtjy", "B3Rxp6L", "BJ0Hz5L", "DsgkuIt", "EIeI8Vf", "I4hDWkc", "IZVHb27", "Kyd9Rz5", "NbVPDMW", "RJgzwny", "RKjH6Lt", "RRWFUcw", "SP3hUez", "SpYC0Kp", "TFqbd8t", "VBAWRPG", "WhuFnR7", "X6C6i5Y", "XVDdcoj", "ZA8b5hc", "ZfyAGhK", "eYnzaCm", "fUBheHs", "iYzB0Cz", "my33uHU", "nAuHPcD", "rbu5UUb", "u0cNiij", "wQ2c4XD", "ykUOVze", "znQUdHY"];
+const saveStarterAnims = () => caches.open(IMG_CACHE).then(c => Promise.all(STARTER_ANIM.map(id => {
+  const url = ANIM_B + id + '.gif';
+  return c.match(url).then(hit => hit || fetch(new Request(url, { mode: 'no-cors' })).then(r => c.put(url, r))).catch(() => {});
+}))).catch(() => {});
 self.addEventListener('install', event => {
   // cache: 'reload' skips the phone's own 10-minute copy, so a new version stores the new files
-  event.waitUntil(caches.open(VERSION).then(c => c.addAll(PRECACHE.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
+  event.waitUntil(caches.open(VERSION).then(c => c.addAll(PRECACHE.map(u => new Request(u, { cache: 'reload' }))))
+    .then(() => Promise.race([saveStarterAnims(), new Promise(res => setTimeout(res, 15000))])).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', event => {
   event.waitUntil(

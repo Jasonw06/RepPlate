@@ -3,17 +3,19 @@ Free workout guide + calorie counter that runs as a web app on your phone.
 
 WHAT IT DOES
 - Train: 6 starter routines (home, core, dumbbells, gym push / pull / legs) you can edit,
-  plus a library of 876 exercises, each with a start/finish demo and step-by-step instructions.
+  plus a library of 1,291 exercises, every one with a 3D animation and step-by-step instructions.
 - Coach mode (hands-free): "3, 2, 1, go", then the demo moves in time with each rep while
   the phone's built-in voice counts out loud. At the end of the set it says "Rest, 45 seconds",
   counts down the last seconds, announces the next set or exercise and starts it by itself,
   until the workout is done. Pause any time. Rep speed (slow / normal / fast), the voice and
   "I tap when done" mode are under Me > Workout coach. The voice is free and works offline.
-- 3D exercise animations: about 325 exercises (all the starter-routine moves except bodyweight squat,
-  plank and Superman) show an animated 3D figure doing the movement, with the working muscle in red,
-  on the exercise page and in workout mode. Tap "Photos" to switch to the start/finish photos (and
-  "3D" to switch back); the choice is remembered. Animations load from ExerciseDB's free servers the
-  first time and are then kept on the phone for offline use; if one can't load, the photos show.
+- 3D exercise animations: every exercise in the library shows an animated 3D figure doing the
+  movement, with the working muscle in red: on the exercise page, in workout mode and as the little
+  picture in lists. Exercises that also have photos get a "Photos" button (and "3D" to switch back);
+  the choice is remembered. Animations load from ExerciseDB's free servers the first time you see
+  them and are then kept on the phone; the starter-routine ones are saved when the app installs, so
+  they work offline straight away. If one can't load, the photos (or a placeholder) show instead.
+  Older photo-only exercises are hidden from the library but still work in old routines and history.
 - Muscles worked: every exercise page shows a front-and-back body figure with the main muscles lit
   up in orange and the helping muscles in a lighter shade, plus "Feel it in your chest" and what
   else it works. During a workout a small figure sits in the corner of the picture so you know
@@ -151,7 +153,8 @@ CHANGING THINGS LATER
   served from a web address (any of the hosts above, or a local web server).
 
 CREDITS AND LICENCES
-- Exercise data and pictures: free-exercise-db by yuhonas (public domain / Unlicense).
+- Exercise data and pictures: free-exercise-db by yuhonas (public domain / Unlicense) for the original
+  exercises, and ExerciseDB by AscendAPI (free V1 dataset) for the added exercises and all 3D animations.
   Starter-routine pictures are included in img/ex; the rest load from GitHub.
 - Everyday foods: USDA National Nutrient Database for Standard Reference, Release 28
   (public domain), in data/foods.json. Values are per 100 g.
@@ -161,8 +164,8 @@ CREDITS AND LICENCES
   built-in barcode reader.
 - Fonts: Big Shoulders Display, Archivo and Nunito (all SIL Open Font Licence), in fonts/.
 - 3D exercise animations: ExerciseDB free V1 dataset by AscendAPI (https://oss.exercisedb.dev),
-  free for personal and non-commercial apps with credit to AscendAPI. data/anim.json links our
-  exercises to their animations; the animations themselves load from ExerciseDB's servers. A paid
+  free for personal and non-commercial apps with credit to AscendAPI. Each exercise in
+  data/exercises.json carries its animation id ("a"); the animations load from ExerciseDB's servers. A paid
   plan is needed if RepPlate is ever sold or used commercially.
 - Muscle figure shapes: adapted from react-body-highlighter by GV79 (MIT licence). The licence text
   is in THIRD-PARTY-LICENSES.txt; keep that file with the app.

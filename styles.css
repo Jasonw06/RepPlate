@@ -1802,3 +1802,5 @@ a.pulse-ideas { text-decoration: none; }
 .demo-swap .i { width: 13px; height: 13px; }
 .demo.noimg .demo-swap { position: static; margin-top: 4px; }
 @media (min-width: 700px) { .demo.anim { max-height: 360px; } }
+/* list thumbnails: the 3D figure on a white tile */
+.anim-thumb { background: #FFFFFF; object-fit: contain !important; }
