@@ -553,7 +553,7 @@ async function route(opts = {}) {
   };
   if (vt && document.startViewTransition && !navigator.webdriver && !layers.length && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
     document.documentElement.dataset.vt = vt;
-    try { document.startViewTransition(apply).finished.finally(() => { delete document.documentElement.dataset.vt; }); }
+    try { const t = document.startViewTransition(apply); t.ready.catch(() => {}); t.finished.catch(() => {}).finally(() => { delete document.documentElement.dataset.vt; }); }   // a skipped transition (fast taps) is fine
     catch (e) { delete document.documentElement.dataset.vt; apply(); }
   } else apply();
 }
