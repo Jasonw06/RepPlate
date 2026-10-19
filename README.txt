@@ -85,9 +85,16 @@ WHAT IT DOES
   Train, Me and Progress also show two columns.
 - Workouts: plate calculator and warm-up sets for barbell lifts; supersets and drop sets (set them
   in the routine editor); rate how hard each set felt (RPE 6–10) and the "try heavier" tip uses
-  it; six ready-made programs (Beginner Full Body, 5×5 Strength, Push/Pull/Legs 6 or 3 days, Home
-  Fat Burn, Dumbbell Builder) that fill your week and alternate A/B workouts; an interval timer
-  for Tabata, EMOM, AMRAP and custom intervals with the voice coach.
+  it; six ready-made programs (Beginner Full Body, 5×5 Strength, Push/Pull/Legs 6 or 3 days,
+  Home Fat Burn, Dumbbell Builder) plus your Personalized plan, which fill your week and alternate
+  A/B workouts; an interval timer for Tabata, EMOM, AMRAP and custom intervals with the voice coach.
+- Personalized (Train > Personalized): your own 5-Day Machine Muscle Builder, made to build muscle
+  in the gym, all on machines and cables. Mon Push, Tue Pull, Wed Legs, Thu Upper, Fri Lower, weekend
+  off: every muscle twice a week, 7–8 exercises a day, about 50–55 minutes, for 8 weeks. Each day
+  shows the muscles it works and every exercise with its 3D animation, sets, reps and rest (about
+  2 minutes on big presses, rows and leg machines, 60–90 seconds on the rest). Tap "Start this plan"
+  to set your week and add the 5 workouts to Train; nothing changes until you tap it. Its
+  animations are saved on the phone so they work in a gym with no signal.
 - Activity and calories burned: workouts, cardio (walk, run, cycle, swim, sport…) and steps you
   type in. Off / Half / All of it is added to what you can eat today. GPS tracking for walks, runs,
   hikes and rides while the app is open.

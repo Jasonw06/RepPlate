@@ -536,7 +536,7 @@ async function route(opts = {}) {
   if (name === 'plan') { try { await loadFoodDb(); } catch (e) { /* shown in view */ } }
   // iOS-style page slide: going deeper pushes in from the right, going back slides it away; tab switches are instant
   const fromName = (currentRoute || '').split('/')[0], ROOTS = ['today', 'food', 'train', 'me'];
-  const sameArea = fromName === name || [fromName, name].every(x => x === 'train' || x === 'exercises');
+  const sameArea = fromName === name || [fromName, name].every(x => x === 'train' || x === 'exercises' || x === 'personal');
   let vt = null;
   if (!opts.keepScroll && currentRoute && currentRoute !== h && !sameArea) {
     if (wentBack) vt = ROOTS.includes(name) && ROOTS.includes(fromName) ? null : 'pop';
@@ -572,6 +572,7 @@ function render(name, arg) {
     case 'progress': html = viewProgress(); break;
     case 'summary': html = viewSummary(); break;
     case 'programs': html = viewPrograms(); break;
+    case 'personal': html = viewPersonal(); break;
     case 'strength': html = viewStrength(); break;
     default: name = 'today'; html = viewToday();
   }
@@ -579,7 +580,7 @@ function render(name, arg) {
   lastRendered = name;
   document.body.classList.toggle('modal-page', name === 'edit');
   document.body.dataset.page = name;
-  const tab = { plan: 'food', progress: 'me', summary: 'me', programs: 'train', strength: 'train', today: 'today', food: 'food', train: 'train', exercises: 'train', ex: 'train', routine: 'train', edit: 'train', me: 'me' }[name] || 'today';
+  const tab = { plan: 'food', progress: 'me', summary: 'me', programs: 'train', personal: 'train', strength: 'train', today: 'today', food: 'food', train: 'train', exercises: 'train', ex: 'train', routine: 'train', edit: 'train', me: 'me' }[name] || 'today';
   $$('.tabbar a').forEach(a => { const on = a.dataset.tab === tab; a.classList.toggle('on', on); if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
   if (name === 'exercises') renderLibResults();
   if (name === 'me') updateGoalCheck();
@@ -2151,7 +2152,18 @@ function rpeHTML(a) {
 }
 
 /* ---------- ready-made programs ---------- */
+// items: [exercise id, sets, reps, seconds (timed moves), rest seconds for this exercise (else the routine's rest)]
 const PROGRAMS = [
+  { id: 'machine5', personal: true, name: '5-Day Machine Muscle Builder', weeks: 8, level: 'Intermediate', kit: 'Machines & cables', goal: 'Build muscle',
+    desc: 'Made for you: five gym days a week to build muscle, almost all on machines and cables. Every muscle is trained twice a week, and the weekend is for recovery.',
+    plan: { 1: 'P', 2: 'U', 3: 'L', 4: 'X', 5: 'Y' },
+    routines: [
+      { key: 'P', name: 'Push', focus: 'Chest, shoulders, triceps', rest: 60, items: [['Leverage_Chest_Press', 4, 8, 0, 120], ['edb_jHAnWmT', 3, 10, 0, 120], ['Butterfly', 3, 12, 0, 75], ['Machine_Shoulder_Military_Press', 3, 10, 0, 90], ['edb_dRTfGZT', 4, 15], ['Triceps_Pushdown', 3, 12], ['Cable_Rope_Overhead_Triceps_Extension', 3, 12]] },
+      { key: 'U', name: 'Pull', focus: 'Back, rear shoulders, biceps', rest: 60, items: [['Wide-Grip_Lat_Pulldown', 4, 10, 0, 120], ['edb_aaXr7ld', 4, 8, 0, 120], ['Seated_Cable_Rows', 3, 10, 0, 90], ['Straight-Arm_Pulldown', 3, 12], ['edb_myfUsKf', 3, 15], ['Machine_Preacher_Curls', 3, 10], ['edb_HPlPoQA', 3, 12]] },
+      { key: 'L', name: 'Legs', focus: 'Quads first, plus hamstrings, calves, abs', rest: 60, items: [['Hack_Squat', 4, 8, 0, 150], ['Leg_Press', 3, 12, 0, 120], ['Leg_Extensions', 3, 15], ['Seated_Leg_Curl', 3, 12], ['Thigh_Adductor', 3, 15], ['Standing_Calf_Raises', 4, 12], ['Cable_Crunch', 3, 15]] },
+      { key: 'X', name: 'Upper', focus: 'Chest, back, shoulders, arms', rest: 60, items: [['Smith_Machine_Incline_Bench_Press', 4, 8, 0, 120], ['Leverage_Iso_Row', 4, 10, 0, 90], ['Underhand_Cable_Pulldowns', 3, 10, 0, 90], ['Cable_Crossover', 3, 12], ['edb_goJ6ezq', 3, 15], ['Face_Pull', 3, 15], ['edb_G08RZcQ', 3, 12], ['edb_BRImeP8', 3, 10, 0, 75]] },
+      { key: 'Y', name: 'Lower', focus: 'Hamstrings and glutes first, plus quads, calves, abs', rest: 60, items: [['Lying_Leg_Curls', 4, 10, 0, 75], ['edb_UfePqpx', 3, 8, 0, 150], ['Smith_Machine_Squat', 3, 10, 0, 120], ['edb_OPqShYN', 3, 12], ['Thigh_Abductor', 3, 15], ['Seated_Calf_Raise', 4, 15], ['edb_eXFXCY0', 3, 15]] }],
+    tips: ['Find your weights: pick a weight you can lift for the reps with 2 left in the tank, and remember your seat and pad settings.', 'Get every rep on every set? Go up one plate on the stack next time (RepPlate suggests it). Push the last set close to failure: machines make that safe.', 'Last week: go for a personal best on every machine. Then take an easy week (half the sets) and start again heavier.'] },
   { id: 'beginner', name: 'Beginner Full Body', weeks: 8, level: 'Beginner', kit: 'Gym or dumbbells', alt: ['A', 'B'],
     desc: 'Three full-body workouts a week. Learn the main moves, then add a little weight when you hit all your reps.',
     plan: { 1: 'A', 3: 'B', 5: 'A' },
@@ -2194,10 +2206,11 @@ const PROGRAMS = [
 ];
 const programOf = id => { const p = PROGRAMS.find(x => x.id === id); if (!p) return null; if (p.same) { const b = PROGRAMS.find(x => x.id === p.same); return { ...b, ...p, routines: b.routines, tips: p.tips || b.tips, rid: b.id }; } return { ...p, rid: p.id }; };
 const progRid = (p, key) => `p-${p.rid}-${key}`;
+const progItems = r => r.items.map(([ex, sets, reps, secs, rest]) => ({ ex, sets, reps: reps || 0, secs: secs || 0, rest: rest || r.rest }));
 function ensureProgramRoutines(p) {
   for (const r of p.routines) {
     const id = progRid(p, r.key);
-    if (!S.routines.some(x => x.id === id)) S.routines.push({ id, name: r.name, note: p.name, program: p.rid, items: r.items.map(([ex, sets, reps, secs]) => ({ ex, sets, reps: reps || 0, secs: secs || 0, rest: r.rest })) });
+    if (!S.routines.some(x => x.id === id)) S.routines.push({ id, name: r.name, note: p.name, program: p.rid, items: progItems(r) });
   }
 }
 const programWeek = P => Math.floor((fromKey(dkey()) - fromKey(P.start)) / (7 * 864e5)) + 1;
@@ -2240,7 +2253,7 @@ function programPanel() {
     <div class="mbar prog-bar" role="img" aria-label="${done} of ${total} workouts done"><i style="width:${clamp(done / total * 100, 0, 100)}%"></i></div>
     <p class="muted" style="font-size:14px">${done} of ${total} workouts done · this week: ${[1, 2, 3, 4, 5, 6, 0].filter(wd => days[wd]).map(wd => `${DAYS.find(d => d[1] === wd)[0]} ${esc(p.routines.find(r => r.key === days[wd]).name)}`).join(', ')}</p>
     <p class="hint">${esc(over ? 'Program complete. Well done! Start it again with heavier weights, or pick a new one.' : tip)}</p>
-    <div class="row-btns"><a class="btn" href="#/programs">${lbl('All programs', 'Programs')}</a><button type="button" class="btn ghost danger" data-act="prog-end">${lbl('End program', 'End')}</button></div>
+    <div class="row-btns"><a class="btn" href="${p.personal ? '#/personal' : '#/programs'}">${p.personal ? lbl('See the plan', 'The plan') : lbl('All programs', 'Programs')}</a><button type="button" class="btn ghost danger" data-act="prog-end">${lbl('End program', 'End')}</button></div>
   </section>`;
 }
 function viewPrograms() {
@@ -2251,14 +2264,85 @@ function viewPrograms() {
   ${PROGRAMS.map(x => {
     const p = programOf(x.id), days = programDays(p, 1);
     return `<section class="panel tight prog-card" aria-label="${esc(p.name)}">
-      <div class="section-row"><h2 class="section">${esc(p.name)}</h2>${cur === p.id ? '<span class="tag on-tag">Current</span>' : ''}</div>
+      <div class="section-row"><h2 class="section">${esc(p.name)}</h2>${cur === p.id ? '<span class="tag on-tag">Current</span>' : p.personal ? '<span class="tag strong">Made for you</span>' : ''}</div>
       <div class="tags"><span class="tag">${Object.keys(p.plan).length} days a week</span><span class="tag">${p.weeks} weeks</span><span class="tag">${esc(p.kit)}</span><span class="tag">${esc(p.level)}</span></div>
       <p>${esc(p.desc)}</p>
       <p class="muted" style="font-size:14px">${[1, 2, 3, 4, 5, 6, 0].filter(wd => days[wd]).map(wd => `${DAYS.find(d => d[1] === wd)[0]}: ${esc(p.routines.find(r => r.key === days[wd]).name)}`).join(' · ')}</p>
-      <details class="prog-ex"><summary>What’s in it</summary>${p.routines.map(r => `<p><b>${esc(r.name)}:</b> ${r.items.map(([ex, s, reps, secs]) => `${esc(exName(ex))} ${s}×${secs ? `${secs} s` : reps}`).join(', ')}</p>`).join('')}</details>
+      ${p.personal ? `<a class="btn block" href="#/personal">See the full plan</a>` : `<details class="prog-ex"><summary>What’s in it</summary>${p.routines.map(r => `<p><b>${esc(r.name)}:</b> ${r.items.map(([ex, s, reps, secs]) => `${esc(exName(ex))} ${s}×${secs ? `${secs} s` : reps}`).join(', ')}</p>`).join('')}</details>`}
       ${cur === p.id ? '<button type="button" class="btn block" disabled>You’re on this program</button>' : `<button type="button" class="btn primary block" data-act="prog-start" data-id="${p.id}">${I.play} Start this program</button>`}
     </section>`;
   }).join('')}`;
+}
+
+/* ---------- Personalized: the plan made for this user (Train > Personalized) ---------- */
+const PERSONAL_ID = 'machine5';
+const restShort = s => s >= 120 ? `${s % 60 ? `${Math.floor(s / 60)}½` : s / 60} min` : `${s} s`;
+function viewPersonal() {
+  const p = programOf(PERSONAL_ID), on = S.program?.id === p.id, other = S.program && !on ? programOf(S.program.id) : null;
+  const st = on ? programStats(S.program) : null, week = on ? Math.min(st.week, p.weeks) : 1, over = on && st.week > p.weeks;
+  const todayWd = new Date().getDay(), todayKey = p.plan[todayWd], todayR = todayKey && p.routines.find(r => r.key === todayKey);
+  const order = [1, 2, 3, 4, 5, 6, 0];
+  const nextWd = order.concat(order).slice(order.indexOf(todayWd) + 1).find(wd => p.plan[wd]);
+  const dayName = wd => DAYS.find(d => d[1] === wd)[0];
+  const strip = `<div class="sched pz-week" role="list">${DAYS.map(([d, wd]) => {
+    const r = p.plan[wd] && p.routines.find(x => x.key === p.plan[wd]);
+    return r ? `<button type="button" role="listitem" class="sched-day on ${wd === todayWd ? 'today' : ''}" data-act="pz-jump" data-to="pz-${r.key}" aria-label="${d}: ${esc(r.name)}"><b>${d}</b><span>${esc(r.name)}</span></button>`
+      : `<span role="listitem" class="sched-day ${wd === todayWd ? 'today' : ''}" aria-label="${d}: rest"><b>${d}</b><span>Rest</span></span>`;
+  }).join('')}</div>`;
+  const status = on ? `
+    <div class="mbar prog-bar" role="img" aria-label="${st.done} of ${st.total} workouts done"><i style="width:${clamp(st.done / st.total * 100, 0, 100)}%"></i></div>
+    <p class="muted pz-prog">${over ? 'Finished' : `Week ${week} of ${p.weeks}`} · ${st.done} of ${st.total} workouts done</p>
+    ${todayR && !over ? `<button type="button" class="btn primary xl block" data-act="start" data-id="${esc(progRid(p, todayR.key))}">${I.play} Start today: ${esc(todayR.name)}</button>`
+      : `<p class="hint">${over ? 'Plan complete. Well done! Start it again with heavier weights.' : `Rest day today. Next up: ${dayName(nextWd)}, ${esc(p.routines.find(r => r.key === p.plan[nextWd]).name)}.`}</p>`}`
+    : `<button type="button" class="btn primary xl block" data-act="prog-start" data-id="${p.id}" data-stay="1">${I.play} Start this plan</button>
+    <p class="hint">${other ? `This replaces ${esc(other.name)}. ` : ''}Sets your week to Monday–Friday training with the weekend off, and adds the 5 workouts to Train. You can still edit any of them.</p>`;
+  const days = order.filter(wd => p.plan[wd]).map(wd => {
+    const r = p.routines.find(x => x.key === p.plan[wd]), items = progItems(r), rid = progRid(p, r.key);
+    const sets = items.reduce((n, it) => n + it.sets, 0), mins = routineMinutes({ items });
+    const main = new Set(), help = new Set();
+    for (const it of items) { const e = EXMAP.get(it.ex); (e?.m || []).forEach(m => main.add(m)); (e?.s || []).forEach(m => help.add(m)); }
+    const mainS = new Set([...main].flatMap(m => MUSCLE_SHAPES[m] || [])), helpS = new Set([...help].flatMap(m => MUSCLE_SHAPES[m] || []));
+    return `<section class="panel tight pz-day" id="pz-${r.key}" aria-label="${dayName(wd)}: ${esc(r.name)}">
+      <div class="pz-dhead">
+        <div class="pz-dtext">
+          <p class="eyebrow">${dayName(wd)}${wd === todayWd ? ' · today' : ''}</p>
+          <h2 class="section">${esc(r.name)}</h2>
+          <p class="muted">${esc(r.focus)}</p>
+          <div class="tags"><span class="tag">${plural(items.length, 'exercise')}</span><span class="tag">${sets} sets</span><span class="tag">about ${mins} min</span></div>
+        </div>
+        ${bodyFig(n => mainS.has(n) ? 'bf-main' : helpS.has(n) ? 'bf-help' : '', { cls: 'pz-fig', label: `Muscles worked: ${andList([...main].map(muscleWord))}` })}
+      </div>
+      <ol class="r-items">${items.map(it => `<li><a class="ri" href="#/ex/${encodeURIComponent(it.ex)}">${imgTag(it.ex, 0, 'thumb')}<div><strong>${esc(exSplit(exName(it.ex))[0])}</strong><span>${it.sets} × ${it.reps} reps · rest ${restShort(it.rest)}</span></div>${I.chevR}</a></li>`).join('')}</ol>
+      ${on ? `<a class="btn block" href="#/routine/${encodeURIComponent(rid)}">Open ${esc(r.name)} workout</a>` : ''}
+    </section>`;
+  }).join('');
+  const how = [
+    [I.dumbbell, 'Weight and reps', 'Pick a weight you can lift for the reps with 1–2 left in the tank. Get every rep on every set? Go up one plate on the stack next time. RepPlate suggests it for you.'],
+    [I.clock, 'Rest', 'About 2 minutes on the big presses, rows and leg machines, 60–90 seconds on the rest. It’s already set in each workout.'],
+    [I.target, 'Machine taken?', 'Tap Swap during the workout to pick another exercise for the same muscles.'],
+    [I.utensils, 'Eat to grow', 'Muscle needs fuel: a small calorie surplus and about 1.6 g of protein per kg. In Me > Daily goals, open the calculator and pick “Gain slowly (building muscle)”.'],
+  ];
+  return `
+  <header class="top"><div><p class="eyebrow">Made for you · build muscle</p><h1 class="h-display">Personalized</h1></div></header>
+  ${trainTabs('p')}
+  <div class="cols"><div class="col-a">
+  <section class="panel pz-hero" aria-label="Your plan">
+    <div class="section-row">${secHead(I.target, 'workout', esc(p.name))}${on ? '<span class="tag on-tag">Current</span>' : ''}</div>
+    <div class="tags"><span class="tag">5 days a week</span><span class="tag">${p.weeks} weeks</span><span class="tag">${esc(p.kit)}</span><span class="tag">${esc(p.goal)}</span></div>
+    <p>${esc(p.desc)}</p>
+    ${strip}
+    ${status}
+    ${on && !over ? `<p class="hint pz-tip"><b>This week:</b> ${esc(p.tips[week <= 2 ? 0 : week >= p.weeks ? 2 : 1])}</p>` : ''}
+  </section>
+  <section class="panel tight pz-how" aria-label="How to train it">
+    ${secHead(I.check, 'workout', 'How to train it')}
+    ${how.map(([ic, h, t]) => `<div class="pz-row"><span class="ico-badge c-workout" aria-hidden="true">${ic}</span><div><b>${h}</b><p>${esc(t)}</p></div></div>`).join('')}
+    <a class="link" href="#/me#goals">Set my food goals</a>
+  </section>
+  ${on ? `<button type="button" class="btn ghost danger block" data-act="prog-end">End this plan</button>` : ''}
+  </div><div class="col-b">
+  ${days}
+  </div></div>`;
 }
 
 /* ---------- interval timer: Tabata, EMOM, AMRAP, custom ---------- */
@@ -4792,7 +4876,7 @@ function openNotFound(code, ctx) {
 
 /* ============================== TRAIN ============================== */
 function trainTabs(on) {
-  return `<nav class="seg" aria-label="Train sections"><a href="#/train" class="${on === 'r' ? 'on' : ''}">Routines</a><a href="#/exercises" class="${on === 'e' ? 'on' : ''}">Exercise library</a></nav>`;
+  return `<nav class="seg" aria-label="Train sections"><a href="#/train" class="${on === 'r' ? 'on' : ''}">Routines</a><a href="#/personal" class="${on === 'p' ? 'on' : ''}">Personalized</a><a href="#/exercises" class="${on === 'e' ? 'on' : ''}">Exercises</a></nav>`;
 }
 function viewTrain() {
   const cards = S.routines.map(r => {
@@ -4835,6 +4919,7 @@ function viewTrain() {
     <button type="button" class="btn tool" data-act="hiit">${I.clock}<span>${lbl('Interval timer', 'Intervals')}</span></button>
     <button type="button" class="btn tool" data-act="plates">${I.dumbbell}<span>${lbl('Plate calculator', 'Plates')}</span></button>
   </div>
+  ${S.program?.id === PERSONAL_ID ? '' : `<a class="panel tight pz-promo" href="#/personal"><span class="ico-badge c-workout" aria-hidden="true">${I.target}</span><span class="pz-promo-t"><b>Your 5-day muscle plan</b><span>Made for you · Mon–Fri · machines &amp; cables</span></span>${I.chevR}</a>`}
   ${programPanel()}
   ${recoveryPanel()}
   </div><div class="col-b">
@@ -5678,8 +5763,9 @@ const ACTIONS = {
   'prog-start': el => {
     const p = programOf(el.dataset.id); if (!p) return;
     if (S.program && !el.dataset.sure) { el.dataset.sure = '1'; el.textContent = 'Tap again to switch programs'; return; }
-    startProgram(p.id); navUpTo('#/train'); toast(`${p.name} started. Your week is set.`);
+    startProgram(p.id); if (el.dataset.stay) rerender(); else navUpTo('#/train'); toast(`${p.name} started. Your week is set.`);
   },
+  'pz-jump': el => { const t = document.getElementById(el.dataset.to); if (t) t.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' }); },
   'prog-end': el => {
     if (!el.dataset.sure) { el.dataset.sure = '1'; el.textContent = 'Tap again to end'; return; }
     const p = programOf(S.program?.id), ids = new Set((p?.routines || []).map(r => progRid(p, r.key))), sc = schedule();
@@ -5987,6 +6073,8 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
   });
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { shownAt = Date.now(); checkForUpdate(); } });
   window.addEventListener('load', () => navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(checkForUpdate).catch(() => {}));
+  // once the app is running, quietly save the starter and Personalized-plan animations for gyms with no signal
+  navigator.serviceWorker.ready.then(r => setTimeout(() => { try { r.active && r.active.postMessage('save-anims'); } catch (e) { /* not needed */ } }, 4000)).catch(() => {});
 }
 // expose for debugging in the browser console
 window.RepPlate = { get state() { return S; }, fn: { programDays: (...a) => programDays(...a), programOf: (...a) => programOf(...a), allEx: () => EX.map(e => e.i), listed: () => EXV.map(e => e.i), exGet: id => EXMAP.get(id), shapes: m => MUSCLE_SHAPES[m] || [] } };

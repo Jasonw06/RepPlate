@@ -1,5 +1,5 @@
 /* RepPlate service worker: keeps the app working offline. Bump VERSION when you change files. */
-const VERSION = 'repplate-v22';
+const VERSION = 'repplate-v23';
 const IMG_CACHE = 'repplate-exercise-images';
 const PRECACHE = [
  "./",
@@ -92,17 +92,21 @@ const PRECACHE = [
  "img/ex/Wide-Grip_Lat_Pulldown/1.jpg"
 ];
 
-// 3D animations for the starter routines, saved on install so they work offline straight away
+// 3D animations for the starter routines and the Personalized plan, saved on install so they work offline straight away
 const ANIM_B = 'https://static.exercisedb.dev/media/';
-const STARTER_ANIM = ["10Z2DXU", "17lJ1kr", "25GPyDY", "2NpxjC1", "3ZflifB", "75Bgtjy", "B3Rxp6L", "BJ0Hz5L", "DsgkuIt", "EIeI8Vf", "I4hDWkc", "IZVHb27", "Kyd9Rz5", "NbVPDMW", "RJgzwny", "RKjH6Lt", "RRWFUcw", "SP3hUez", "SpYC0Kp", "TFqbd8t", "VBAWRPG", "WhuFnR7", "X6C6i5Y", "XVDdcoj", "ZA8b5hc", "ZfyAGhK", "eYnzaCm", "fUBheHs", "iYzB0Cz", "my33uHU", "nAuHPcD", "rbu5UUb", "u0cNiij", "wQ2c4XD", "ykUOVze", "znQUdHY"];
+const STARTER_ANIM = ["10Z2DXU", "17lJ1kr", "25GPyDY", "2NpxjC1", "3ZflifB", "75Bgtjy", "B3Rxp6L", "BJ0Hz5L", "DsgkuIt", "EIeI8Vf", "I4hDWkc", "IZVHb27", "Kyd9Rz5", "NbVPDMW", "RJgzwny", "RKjH6Lt", "RRWFUcw", "SP3hUez", "SpYC0Kp", "TFqbd8t", "VBAWRPG", "WhuFnR7", "X6C6i5Y", "XVDdcoj", "ZA8b5hc", "ZfyAGhK", "eYnzaCm", "fUBheHs", "iYzB0Cz", "my33uHU", "nAuHPcD", "rbu5UUb", "u0cNiij", "wQ2c4XD", "ykUOVze", "znQUdHY", "DOoWcnA", "jHAnWmT", "v3xmPAR", "67n3r98", "dRTfGZT", "2IxROQ1", "aaXr7ld", "x69MAlq", "myfUsKf", "b6hQYMb", "HPlPoQA", "Qa55kX1", "Zg3XY7P", "oHsrypV", "WW95auq", "5v7KYld", "7I6LNUG", "xBYcQHj", "0CXGHya", "goJ6ezq", "G08RZcQ", "BRImeP8", "UfePqpx", "jFtipLl", "OPqShYN", "CHpahtl", "bOOdeyc", "eXFXCY0"];
 const saveStarterAnims = () => caches.open(IMG_CACHE).then(c => Promise.all(STARTER_ANIM.map(id => {
   const url = ANIM_B + id + '.gif';
   return c.match(url).then(hit => hit || fetch(new Request(url, { mode: 'no-cors' })).then(r => c.put(url, r))).catch(() => {});
 }))).catch(() => {});
 self.addEventListener('install', event => {
-  // cache: 'reload' skips the phone's own 10-minute copy, so a new version stores the new files
-  event.waitUntil(caches.open(VERSION).then(c => c.addAll(PRECACHE.map(u => new Request(u, { cache: 'reload' }))))
-    .then(() => Promise.race([saveStarterAnims(), new Promise(res => setTimeout(res, 15000))])).then(() => self.skipWaiting()));
+  // cache: 'reload' skips the phone's own 10-minute copy, so a new version stores the new files.
+  // The new version takes over as soon as the app files are saved; the animations follow in the background.
+  event.waitUntil(caches.open(VERSION).then(c => c.addAll(PRECACHE.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
+});
+// the app asks for this a few seconds after it opens; already-saved animations are skipped
+self.addEventListener('message', event => {
+  if (event.data === 'save-anims') event.waitUntil(saveStarterAnims());
 });
 self.addEventListener('activate', event => {
   event.waitUntil(

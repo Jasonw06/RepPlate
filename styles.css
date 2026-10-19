@@ -1804,3 +1804,30 @@ a.pulse-ideas { text-decoration: none; }
 @media (min-width: 700px) { .demo.anim { max-height: 360px; } }
 /* list thumbnails: the 3D figure on a white tile */
 .anim-thumb { background: #FFFFFF; object-fit: contain !important; }
+
+/* ---------- Train > Personalized: the plan made for you ---------- */
+.pz-hero > p { margin: 0; font-size: 15px; line-height: 1.4; }
+.pz-week .sched-day { text-decoration: none; font: inherit; cursor: pointer; }
+.pz-week span.sched-day { cursor: default; }
+.pz-prog { margin: -6px 0 0; font-size: 14px; }
+.pz-tip { margin: 0; }
+.pz-tip b { color: var(--ink); font-weight: 600; }
+.pz-how .pz-row { display: grid; grid-template-columns: 28px 1fr; gap: 12px; align-items: start; }
+.pz-how .pz-row b { font-weight: 600; }
+.pz-how .pz-row p { margin: 2px 0 0; font-size: 14px; line-height: 1.4; color: var(--muted); }
+.pz-how .link { font-size: 15px; justify-self: start; }
+.pz-day { scroll-margin-top: 12px; }
+.pz-dhead { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; }
+.pz-dtext { display: grid; gap: 4px; min-width: 0; }
+.pz-dtext .eyebrow, .pz-dtext p { margin: 0; }
+.pz-dtext .muted { font-size: 14px; line-height: 1.35; }
+.pz-dtext .tags { margin-top: 4px; }
+.pz-fig { width: 104px; height: auto; }
+.pz-day .r-items { background: none; padding: 0; border-radius: 0; margin: 0 -2px; }
+.pz-day .ri span { font-size: 14px; }
+.pz-promo { display: grid; grid-template-columns: 28px 1fr auto; gap: 12px; align-items: center; text-decoration: none; color: var(--ink); }
+.pz-promo-t { display: grid; gap: 2px; min-width: 0; }
+.pz-promo-t b { font-weight: 600; }
+.pz-promo-t span { font-size: 14px; color: var(--muted); }
+.pz-promo > .i { color: var(--label-3, var(--muted)); }
+@media (min-width: 700px) { .pz-fig { width: 130px; } }
