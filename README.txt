@@ -90,7 +90,10 @@ WHAT IT DOES
   A/B workouts; an interval timer for Tabata, EMOM, AMRAP and custom intervals with the voice coach.
 - Personalized (Train > Personalized): your own 5-Day Machine Muscle Builder, made to build muscle
   in the gym, all on machines and cables. Mon Push, Tue Pull, Wed Legs, Thu Upper, Fri Lower, weekend
-  off: every muscle twice a week, 7–8 exercises a day, about 50–55 minutes, for 8 weeks. Each day
+  off: every muscle twice a week, 7–8 exercises a day, about 55–60 minutes, for 8 weeks. Every
+  day starts with a warm-up: 5 minutes of brisk walking on the treadmill, then 1–2 light sets on the
+  first machine. (If you started the plan before the warm-up was added, it's added to the top of
+  your workouts once; remove it in the routine editor if you don't want it.) Each day
   shows the muscles it works and every exercise with its 3D animation, sets, reps and rest (about
   2 minutes on big presses, rows and leg machines, 60–90 seconds on the rest). Tap "Start this plan"
   to set your week and add the 5 workouts to Train; nothing changes until you tap it. Its

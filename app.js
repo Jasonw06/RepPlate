@@ -128,6 +128,8 @@ function clock(sec) {
   const s = Math.max(0, Math.round(sec)); const m = Math.floor(s / 60); const h = Math.floor(m / 60);
   return h ? `${h}:${String(m % 60).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}` : `${m}:${String(s % 60).padStart(2, '0')}`;
 }
+// 45 → "45 s", 300 → "5 min", 90 → "1 min 30 s"
+const durText = sec => sec >= 60 ? `${Math.floor(sec / 60)} min${sec % 60 ? ` ${sec % 60} s` : ''}` : `${sec} s`;
 function mealNow() {
   const d = new Date(); const h = d.getHours() + d.getMinutes() / 60;
   return h < 10.5 ? 'breakfast' : h < 15 ? 'lunch' : h < 20.5 ? 'dinner' : 'snacks';
@@ -2153,16 +2155,17 @@ function rpeHTML(a) {
 
 /* ---------- ready-made programs ---------- */
 // items: [exercise id, sets, reps, seconds (timed moves), rest seconds for this exercise (else the routine's rest)]
+const TREADMILL_WARMUP = ['edb_rjiM4L3', 1, 0, 300, 30];   // 5 minutes brisk walking on the treadmill
 const PROGRAMS = [
-  { id: 'machine5', personal: true, name: '5-Day Machine Muscle Builder', weeks: 8, level: 'Intermediate', kit: 'Machines & cables', goal: 'Build muscle',
+  { id: 'machine5', personal: true, warm: TREADMILL_WARMUP, name: '5-Day Machine Muscle Builder', weeks: 8, level: 'Intermediate', kit: 'Machines & cables', goal: 'Build muscle',
     desc: 'Made for you: five gym days a week to build muscle, almost all on machines and cables. Every muscle is trained twice a week, and the weekend is for recovery.',
     plan: { 1: 'P', 2: 'U', 3: 'L', 4: 'X', 5: 'Y' },
     routines: [
-      { key: 'P', name: 'Push', focus: 'Chest, shoulders, triceps', rest: 60, items: [['Leverage_Chest_Press', 4, 8, 0, 120], ['edb_jHAnWmT', 3, 10, 0, 120], ['Butterfly', 3, 12, 0, 75], ['Machine_Shoulder_Military_Press', 3, 10, 0, 90], ['edb_dRTfGZT', 4, 15], ['Triceps_Pushdown', 3, 12], ['Cable_Rope_Overhead_Triceps_Extension', 3, 12]] },
-      { key: 'U', name: 'Pull', focus: 'Back, rear shoulders, biceps', rest: 60, items: [['Wide-Grip_Lat_Pulldown', 4, 10, 0, 120], ['edb_aaXr7ld', 4, 8, 0, 120], ['Seated_Cable_Rows', 3, 10, 0, 90], ['Straight-Arm_Pulldown', 3, 12], ['edb_myfUsKf', 3, 15], ['Machine_Preacher_Curls', 3, 10], ['edb_HPlPoQA', 3, 12]] },
-      { key: 'L', name: 'Legs', focus: 'Quads first, plus hamstrings, calves, abs', rest: 60, items: [['Hack_Squat', 4, 8, 0, 150], ['Leg_Press', 3, 12, 0, 120], ['Leg_Extensions', 3, 15], ['Seated_Leg_Curl', 3, 12], ['Thigh_Adductor', 3, 15], ['Standing_Calf_Raises', 4, 12], ['Cable_Crunch', 3, 15]] },
-      { key: 'X', name: 'Upper', focus: 'Chest, back, shoulders, arms', rest: 60, items: [['Smith_Machine_Incline_Bench_Press', 4, 8, 0, 120], ['Leverage_Iso_Row', 4, 10, 0, 90], ['Underhand_Cable_Pulldowns', 3, 10, 0, 90], ['Cable_Crossover', 3, 12], ['edb_goJ6ezq', 3, 15], ['Face_Pull', 3, 15], ['edb_G08RZcQ', 3, 12], ['edb_BRImeP8', 3, 10, 0, 75]] },
-      { key: 'Y', name: 'Lower', focus: 'Hamstrings and glutes first, plus quads, calves, abs', rest: 60, items: [['Lying_Leg_Curls', 4, 10, 0, 75], ['edb_UfePqpx', 3, 8, 0, 150], ['Smith_Machine_Squat', 3, 10, 0, 120], ['edb_OPqShYN', 3, 12], ['Thigh_Abductor', 3, 15], ['Seated_Calf_Raise', 4, 15], ['edb_eXFXCY0', 3, 15]] }],
+      { key: 'P', name: 'Push', focus: 'Chest, shoulders, triceps', rest: 60, items: [TREADMILL_WARMUP, ['Leverage_Chest_Press', 4, 8, 0, 120], ['edb_jHAnWmT', 3, 10, 0, 120], ['Butterfly', 3, 12, 0, 75], ['Machine_Shoulder_Military_Press', 3, 10, 0, 90], ['edb_dRTfGZT', 4, 15], ['Triceps_Pushdown', 3, 12], ['Cable_Rope_Overhead_Triceps_Extension', 3, 12]] },
+      { key: 'U', name: 'Pull', focus: 'Back, rear shoulders, biceps', rest: 60, items: [TREADMILL_WARMUP, ['Wide-Grip_Lat_Pulldown', 4, 10, 0, 120], ['edb_aaXr7ld', 4, 8, 0, 120], ['Seated_Cable_Rows', 3, 10, 0, 90], ['Straight-Arm_Pulldown', 3, 12], ['edb_myfUsKf', 3, 15], ['Machine_Preacher_Curls', 3, 10], ['edb_HPlPoQA', 3, 12]] },
+      { key: 'L', name: 'Legs', focus: 'Quads first, plus hamstrings, calves, abs', rest: 60, items: [TREADMILL_WARMUP, ['Hack_Squat', 4, 8, 0, 150], ['Leg_Press', 3, 12, 0, 120], ['Leg_Extensions', 3, 15], ['Seated_Leg_Curl', 3, 12], ['Thigh_Adductor', 3, 15], ['Standing_Calf_Raises', 4, 12], ['Cable_Crunch', 3, 15]] },
+      { key: 'X', name: 'Upper', focus: 'Chest, back, shoulders, arms', rest: 60, items: [TREADMILL_WARMUP, ['Smith_Machine_Incline_Bench_Press', 4, 8, 0, 120], ['Leverage_Iso_Row', 4, 10, 0, 90], ['Underhand_Cable_Pulldowns', 3, 10, 0, 90], ['Cable_Crossover', 3, 12], ['edb_goJ6ezq', 3, 15], ['Face_Pull', 3, 15], ['edb_G08RZcQ', 3, 12], ['edb_BRImeP8', 3, 10, 0, 75]] },
+      { key: 'Y', name: 'Lower', focus: 'Hamstrings and glutes first, plus quads, calves, abs', rest: 60, items: [TREADMILL_WARMUP, ['Lying_Leg_Curls', 4, 10, 0, 75], ['edb_UfePqpx', 3, 8, 0, 150], ['Smith_Machine_Squat', 3, 10, 0, 120], ['edb_OPqShYN', 3, 12], ['Thigh_Abductor', 3, 15], ['Seated_Calf_Raise', 4, 15], ['edb_eXFXCY0', 3, 15]] }],
     tips: ['Find your weights: pick a weight you can lift for the reps with 2 left in the tank, and remember your seat and pad settings.', 'Get every rep on every set? Go up one plate on the stack next time (RepPlate suggests it). Push the last set close to failure: machines make that safe.', 'Last week: go for a personal best on every machine. Then take an easy week (half the sets) and start again heavier.'] },
   { id: 'beginner', name: 'Beginner Full Body', weeks: 8, level: 'Beginner', kit: 'Gym or dumbbells', alt: ['A', 'B'],
     desc: 'Three full-body workouts a week. Learn the main moves, then add a little weight when you hit all your reps.',
@@ -2210,8 +2213,20 @@ const progItems = r => r.items.map(([ex, sets, reps, secs, rest]) => ({ ex, sets
 function ensureProgramRoutines(p) {
   for (const r of p.routines) {
     const id = progRid(p, r.key);
-    if (!S.routines.some(x => x.id === id)) S.routines.push({ id, name: r.name, note: p.name, program: p.rid, items: progItems(r) });
+    if (!S.routines.some(x => x.id === id)) S.routines.push({ id, name: r.name, note: p.name, program: p.rid, items: progItems(r), warmed: true });
   }
+}
+// a plan that gained its warm-up after you started it: add it to the top of your workouts once (your own edits stay)
+function addWarmups(p) {
+  if (!p.warm) return false;
+  let changed = false;
+  for (const r of p.routines) {
+    const mine = S.routines.find(x => x.id === progRid(p, r.key));
+    if (!mine || mine.warmed) continue;
+    if (!mine.items.some(it => it.ex === p.warm[0])) mine.items.unshift(progItems({ rest: r.rest, items: [p.warm] })[0]);
+    mine.warmed = true; changed = true;
+  }
+  return changed;
 }
 const programWeek = P => Math.floor((fromKey(dkey()) - fromKey(P.start)) / (7 * 864e5)) + 1;
 function programDays(p, week) {   // weekday -> routine key for that week (A/B programs alternate)
@@ -2223,7 +2238,7 @@ function syncProgram() {
   const P = S.program; if (!P) return;
   const p = programOf(P.id); if (!p) { S.program = null; return; }
   const week = Math.min(programWeek(P), p.weeks), days = programDays(p, week), sc = schedule();
-  let changed = false;
+  let changed = addWarmups(p);
   for (const wd of [0, 1, 2, 3, 4, 5, 6]) {
     const want = days[wd] ? progRid(p, days[wd]) : '';
     if ((sc[wd] || '') !== want) { if (want) sc[wd] = want; else delete sc[wd]; changed = true; }
@@ -2298,9 +2313,9 @@ function viewPersonal() {
     <p class="hint">${other ? `This replaces ${esc(other.name)}. ` : ''}Sets your week to Monday–Friday training with the weekend off, and adds the 5 workouts to Train. You can still edit any of them.</p>`;
   const days = order.filter(wd => p.plan[wd]).map(wd => {
     const r = p.routines.find(x => x.key === p.plan[wd]), items = progItems(r), rid = progRid(p, r.key);
-    const sets = items.reduce((n, it) => n + it.sets, 0), mins = routineMinutes({ items });
+    const work = items.filter(it => !(p.warm && it.ex === p.warm[0])), sets = work.reduce((n, it) => n + it.sets, 0), mins = routineMinutes({ items });
     const main = new Set(), help = new Set();
-    for (const it of items) { const e = EXMAP.get(it.ex); (e?.m || []).forEach(m => main.add(m)); (e?.s || []).forEach(m => help.add(m)); }
+    for (const it of work) { const e = EXMAP.get(it.ex); (e?.m || []).forEach(m => main.add(m)); (e?.s || []).forEach(m => help.add(m)); }
     const mainS = new Set([...main].flatMap(m => MUSCLE_SHAPES[m] || [])), helpS = new Set([...help].flatMap(m => MUSCLE_SHAPES[m] || []));
     return `<section class="panel tight pz-day" id="pz-${r.key}" aria-label="${dayName(wd)}: ${esc(r.name)}">
       <div class="pz-dhead">
@@ -2308,15 +2323,16 @@ function viewPersonal() {
           <p class="eyebrow">${dayName(wd)}${wd === todayWd ? ' · today' : ''}</p>
           <h2 class="section">${esc(r.name)}</h2>
           <p class="muted">${esc(r.focus)}</p>
-          <div class="tags"><span class="tag">${plural(items.length, 'exercise')}</span><span class="tag">${sets} sets</span><span class="tag">about ${mins} min</span></div>
+          <div class="tags"><span class="tag">${plural(work.length, 'exercise')}${work.length < items.length ? ' + warm-up' : ''}</span><span class="tag">${sets} sets</span><span class="tag">about ${mins} min</span></div>
         </div>
         ${bodyFig(n => mainS.has(n) ? 'bf-main' : helpS.has(n) ? 'bf-help' : '', { cls: 'pz-fig', label: `Muscles worked: ${andList([...main].map(muscleWord))}` })}
       </div>
-      <ol class="r-items">${items.map(it => `<li><a class="ri" href="#/ex/${encodeURIComponent(it.ex)}">${imgTag(it.ex, 0, 'thumb')}<div><strong>${esc(exSplit(exName(it.ex))[0])}</strong><span>${it.sets} × ${it.reps} reps · rest ${restShort(it.rest)}</span></div>${I.chevR}</a></li>`).join('')}</ol>
+      <ol class="r-items">${items.map(it => `<li><a class="ri" href="#/ex/${encodeURIComponent(it.ex)}">${imgTag(it.ex, 0, 'thumb')}<div><strong>${esc(exSplit(exName(it.ex))[0])}</strong><span>${it.secs ? `<b class="ss-tag">Warm-up</b> ${durText(it.secs)} brisk walk` : `${it.sets} × ${it.reps} reps · rest ${restShort(it.rest)}`}</span></div>${I.chevR}</a></li>`).join('')}</ol>
       ${on ? `<a class="btn block" href="#/routine/${encodeURIComponent(rid)}">Open ${esc(r.name)} workout</a>` : ''}
     </section>`;
   }).join('');
   const how = [
+    [I.flame, 'Warm up first', 'Every day starts with 5 minutes of brisk walking on the treadmill (a slight incline is good). Then do 1–2 light sets on your first machine before your working sets.'],
     [I.dumbbell, 'Weight and reps', 'Pick a weight you can lift for the reps with 1–2 left in the tank. Get every rep on every set? Go up one plate on the stack next time. RepPlate suggests it for you.'],
     [I.clock, 'Rest', 'About 2 minutes on the big presses, rows and leg machines, 60–90 seconds on the rest. It’s already set in each workout.'],
     [I.target, 'Machine taken?', 'Tap Swap during the workout to pick another exercise for the same muscles.'],
@@ -4445,7 +4461,7 @@ function openQuick() {
   const out = el.querySelector('#qw-out'), foot = el.querySelector('#qw-foot');
   const preview = () => {
     const r = st.r;
-    out.innerHTML = r.items.length ? `<ol class="r-items">${r.items.map(it => `<li><div class="ri">${imgTag(it.ex, 0, 'thumb')}<div><strong>${esc(exName(it.ex))}</strong><span>${it.sets} × ${it.secs ? `${it.secs} s` : `${it.reps} reps`} · ${it.rest} s rest</span></div><span></span></div></li>`).join('')}</ol>`
+    out.innerHTML = r.items.length ? `<ol class="r-items">${r.items.map(it => `<li><div class="ri">${imgTag(it.ex, 0, 'thumb')}<div><strong>${esc(exName(it.ex))}</strong><span>${it.sets} × ${it.secs ? `${durText(it.secs)}` : `${it.reps} reps`} · ${it.rest} s rest</span></div><span></span></div></li>`).join('')}</ol>`
       : '<p class="hint">Couldn’t find enough exercises for that. Try other options.</p>';
     foot.innerHTML = `<button type="button" class="btn" data-k="build">${I.shuffle} ${lbl('Shuffle', 'Shuffle')}</button><button type="button" class="btn" data-k="save">${I.bookmark} Save</button><button type="button" class="btn primary grow" data-k="start" ${r.items.length ? '' : 'disabled'}>${I.play} Start</button>`;
   };
@@ -5031,7 +5047,7 @@ function viewRoutine(id) {
   ${resumeBanner()}
   ${r.items.length ? `<button type="button" class="btn primary xl block" data-act="start" data-id="${esc(r.id)}">${I.play} Start workout</button>
   <div class="seg" role="group" aria-label="Workout style"><button type="button" class="${S.settings.guided ? 'on' : ''}" data-act="pref" data-k="guided" data-v="true">${lbl('Coach counts reps', 'Coach counts')}</button><button type="button" class="${S.settings.guided ? '' : 'on'}" data-act="pref" data-k="guided" data-v="false">${lbl('I tap when done', 'I tap')}</button></div>` : ''}
-  ${r.items.length ? `<ol class="r-items">${r.items.map((it, i) => `<li class="${it.ss ? 'ss-a' : r.items[i - 1]?.ss ? 'ss-b' : ''}"><a class="ri" href="#/ex/${encodeURIComponent(it.ex)}">${imgTag(it.ex, 0, 'thumb')}<div><strong>${esc(exSplit(exName(it.ex))[0])}</strong><span>${exSplit(exName(it.ex))[1] ? `${esc(exSplit(exName(it.ex))[1])} · ` : ''}${it.ss || r.items[i - 1]?.ss ? '<b class="ss-tag">Superset</b> ' : ''}${it.drop ? '<b class="ss-tag">+ drop set</b> ' : ''}${it.sets} × ${it.secs ? `${it.secs} s` : `${it.reps} reps`}${it.rest ? ` · ${it.rest} s rest` : ''}</span></div>${I.chevR}</a></li>`).join('')}</ol>`
+  ${r.items.length ? `<ol class="r-items">${r.items.map((it, i) => `<li class="${it.ss ? 'ss-a' : r.items[i - 1]?.ss ? 'ss-b' : ''}"><a class="ri" href="#/ex/${encodeURIComponent(it.ex)}">${imgTag(it.ex, 0, 'thumb')}<div><strong>${esc(exSplit(exName(it.ex))[0])}</strong><span>${exSplit(exName(it.ex))[1] ? `${esc(exSplit(exName(it.ex))[1])} · ` : ''}${it.ss || r.items[i - 1]?.ss ? '<b class="ss-tag">Superset</b> ' : ''}${it.drop ? '<b class="ss-tag">+ drop set</b> ' : ''}${i === 0 && it.secs && isCardio(it.ex) ? '<b class="ss-tag">Warm-up</b> ' : ''}${it.sets} × ${it.secs ? `${durText(it.secs)}` : `${it.reps} reps`}${it.rest ? ` · ${it.rest} s rest` : ''}</span></div>${I.chevR}</a></li>`).join('')}</ol>`
     : `<div class="empty"><strong>No exercises yet</strong><span>Tap Edit to add some.</span></div>`}`;
 }
 
@@ -5082,7 +5098,9 @@ const smooth = x => x * x * (3 - 2 * x);
 const spoken = id => exName(id).replace(/\s+-\s+/g, ', ').replace(/[()]/g, '');
 const restWords = s => s >= 60 && s % 60 === 0 ? plural(s / 60, 'minute') : `${s} seconds`;
 const isGuided = () => !!S.settings.guided;
-const whatWords = it => it.secs ? `${it.secs} second hold` : `${it.reps} reps`;
+const isCardio = id => EXMAP.get(id)?.c === 'cardio';
+const durSay = s => s >= 60 ? `${plural(Math.floor(s / 60), 'minute')}${s % 60 ? ` ${s % 60} seconds` : ''}` : `${s} seconds`;
+const whatWords = it => it.secs ? (isCardio(it.ex) ? `${durSay(it.secs)}, easy pace` : `${it.secs} second hold`) : `${it.reps} reps`;
 
 function startWorkout(rid) {
   if (S.active) { openPlayer(); if (S.active.rid !== rid) toast('Finish or end this workout first'); return; }
@@ -5185,7 +5203,7 @@ function guideStep() {
     const left = g.readyMs - (now - g.t0), s = Math.ceil(left / 1000);
     if (s >= 1 && s <= 3 && g.said !== -s) { g.said = -s; say(String(s)); }
     if (left <= 0) {
-      if (it.secs) { g.phase = 'hold'; a.workEnd = now + it.secs * 1000; lastBeep = -1; say(`Go. Hold for ${it.secs} seconds.`); }
+      if (it.secs) { g.phase = 'hold'; a.workEnd = now + it.secs * 1000; lastBeep = -1; say(isCardio(it.ex) ? `Go. ${durSay(it.secs)}.` : `Go. Hold for ${it.secs} seconds.`); }
       else { g.phase = 'go'; g.t0 = now; g.said = 0; say('Go'); }
       save();
     }
@@ -5211,7 +5229,7 @@ function updateGuideUI() {
   let b = '', u = '', pct = 0;
   if (ph === 'ready') { b = String(Math.max(1, Math.ceil((g.readyMs - (t - g.t0)) / 1000))); u = 'get ready'; }
   else if (ph === 'go') { const done = (t - g.t0) / repMs(); b = String(Math.min(it.reps, Math.floor(done))); u = `of ${it.reps} reps`; pct = done / it.reps; }
-  else if (ph === 'hold') { const rem = g.phase === 'paused' ? (g.remain ?? 0) : Math.max(0, a.workEnd - now); b = clock(Math.ceil(rem / 1000)); u = 'hold'; pct = 1 - rem / (it.secs * 1000); }
+  else if (ph === 'hold') { const rem = g.phase === 'paused' ? (g.remain ?? 0) : Math.max(0, a.workEnd - now); b = clock(Math.ceil(rem / 1000)); u = isCardio(it.ex) ? 'left' : 'hold'; pct = 1 - rem / (it.secs * 1000); }
   if (g.phase === 'paused') u = 'paused';
   if (big.textContent !== b) big.textContent = b;
   const un = $('#g-unit', playerLayerEl); if (un && un.textContent !== u) un.textContent = u;
@@ -5295,7 +5313,7 @@ function workHTML(a) {
     </div>` : ''}
     ${showW && isBarbell(it.ex) ? `<button type="button" class="link plates-link" data-p="plates">${I.dumbbell} Plates &amp; warm-up sets</button>` : ''}
     ${timed && !a.workEnd
-      ? `<button type="button" class="btn primary xl block" data-p="timer">${I.play} Start ${it.secs} s timer</button><button type="button" class="btn block" data-p="done">${I.check} Mark set done</button>`
+      ? `<button type="button" class="btn primary xl block" data-p="timer">${I.play} Start ${durText(it.secs)} timer</button><button type="button" class="btn block" data-p="done">${I.check} Mark set done</button>`
       : `<button type="button" class="btn primary xl block" data-p="done">${I.check} Done set</button>`}
     ${pNav(a)}
   </div>`;
@@ -5313,7 +5331,7 @@ function restHTML(a) {
     </div>
     <div class="rest-btns"><button type="button" class="btn" data-p="rest-sub">−15 s</button><button type="button" class="btn primary" data-p="rest-skip">Skip rest</button><button type="button" class="btn" data-p="rest-add">+15 s</button></div>
     ${rpeHTML(a)}
-    <div class="up-next">${imgTag(it.ex, 0, 'thumb')}<div><span class="eyebrow">Up next</span><strong>${esc(exName(it.ex))}</strong><span>${esc(setLabel(a))} · ${it.secs ? `${it.secs} s` : `${it.reps} reps`}</span></div></div>
+    <div class="up-next">${imgTag(it.ex, 0, 'thumb')}<div><span class="eyebrow">Up next</span><strong>${esc(exName(it.ex))}</strong><span>${esc(setLabel(a))} · ${it.secs ? `${durText(it.secs)}` : `${it.reps} reps`}</span></div></div>
     ${isGuided() ? '<p class="hint">The next set starts by itself when the rest is over.</p>' : ''}
   </div>`;
 }
